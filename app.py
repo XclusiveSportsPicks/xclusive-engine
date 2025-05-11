@@ -86,8 +86,9 @@ def is_valid_pick(confidence, bet_pct, money_pct, sport):
     sharp_delta = money_pct - bet_pct
     print(f"Conf: {confidence}, Sharp Delta: {sharp_delta}, Bet %: {bet_pct}, Money %: {money_pct}")
     return (
-        confidence >= CONFIDENCE_THRESHOLDS[sport] and
-        sharp_delta >= SHARP_DELTA_REQUIREMENT[sport]
+    CONFIDENCE_THRESHOLDS = {'NBA': 8.5, 'MLB': 8.8, 'Soccer': 8.3}
+SHARP_DELTA_REQUIREMENT = {'NBA': 25, 'MLB': 35, 'Soccer': 25}
+
     )
 
 # === MAIN PICKS ROUTE ===

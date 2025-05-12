@@ -2,8 +2,10 @@ from flask import Flask, render_template, jsonify
 import requests
 from datetime import datetime
 import random
+import logging
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
 @app.route("/")
 def index():
@@ -15,38 +17,34 @@ def generate_auto_picks():
 
     leagues = [
         {"key": "baseball_mlb", "label": "MLB"},
-        {"key": "basketball_nba", "label": "NBA"},
-        {"key": "americanfootball_nfl", "label": "NFL"},
-        {"key": "icehockey_nhl", "label": "NHL"},
-        {"key": "soccer_epl", "label": "Soccer EPL"},
-        {"key": "soccer_usa_mls", "label": "Soccer MLS"},
-        {"key": "soccer_spain_la_liga", "label": "Soccer La Liga"},
-        {"key": "soccer_italy_serie_a", "label": "Soccer Serie A"},
-        {"key": "soccer_germany_bundesliga", "label": "Soccer Bundesliga"},
-        {"key": "soccer_france_ligue_one", "label": "Soccer Ligue 1"},
-        {"key": "soccer_uefa_champs_league", "label": "Soccer UCL"},
-        {"key": "soccer_south_america_copa_libertadores", "label": "Copa Libertadores"},
-        {"key": "soccer_international_friendly", "label": "Intl Soccer"}
+        {"key": "basketball_nba", "label": "NBA"}
     ]
 
     picks = []
 
     for league in leagues:
         url = f"https://api.the-odds-api.com/v4/sports/{league['key']}/odds/?apiKey={API_KEY}&regions=us&markets=h2h&oddsFormat=american"
+        logging.info(f"Requesting: {league['label']} - {url}")
         response = requests.get(url)
         if response.status_code != 200:
+            logging.warning(f"Failed to load {league['label']}: Status {response.status_code}")
             continue
 
         data = response.json()
+        logging.info(f"{league['label']} - Games found: {len(data)}")
+
         for game in data:
             if not game.get("bookmakers"):
+                logging.info("Skipped: No bookmakers")
                 continue
 
             markets = game["bookmakers"][0].get("markets", [])
             if not markets or not markets[0].get("outcomes"):
+                logging.info("Skipped: No valid markets")
                 continue
 
             if not game.get("teams") or len(game["teams"]) < 2:
+                logging.info("Skipped: Missing teams")
                 continue
 
             outcomes = markets[0]["outcomes"]
@@ -66,6 +64,8 @@ def generate_auto_picks():
                 "result": ""
             })
 
+    logging.info(f"Total picks generated: {len(picks)}")
+
     sorted_picks = sorted(picks, key=lambda x: int(x["sharp"].strip('%')), reverse=True)
     top_picks = sorted_picks[:7]
 
@@ -76,12 +76,7 @@ def generate_auto_picks():
 
 @app.route("/api/leagues")
 def get_league_list():
-    return jsonify([
-        "MLB", "NBA", "NFL", "NHL",
-        "Soccer EPL", "Soccer MLS", "Soccer La Liga", "Soccer Serie A",
-        "Soccer Bundesliga", "Soccer Ligue 1", "Soccer UCL",
-        "Copa Libertadores", "Intl Soccer"
-    ])
+    return jsonify(["MLB", "NBA"])
 
 if __name__ == "__main__":
     app.run(debug=True)

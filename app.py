@@ -1,11 +1,17 @@
 from flask import Flask, render_template, jsonify
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import logging
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
+
+# Simple in-memory cache
+CACHE = {
+    "timestamp": None,
+    "picks": []
+}
 
 @app.route("/")
 def index():
@@ -13,11 +19,20 @@ def index():
 
 @app.route("/api/auto-picks")
 def generate_auto_picks():
+    now = datetime.now()
+    if CACHE["timestamp"] and now - CACHE["timestamp"] < timedelta(minutes=10):
+        logging.info("Using cached picks.")
+        return jsonify(CACHE["picks"])
+
     API_KEY = "1256c747dab65e1c3cd504f9a3f4802b"
 
     leagues = [
         {"key": "baseball_mlb", "label": "MLB"},
-        {"key": "basketball_nba", "label": "NBA"}
+        {"key": "basketball_nba", "label": "NBA"},
+        {"key": "soccer_epl", "label": "Soccer EPL"},
+        {"key": "americanfootball_nfl", "label": "NFL"},
+        {"key": "icehockey_nhl", "label": "NHL"},
+        {"key": "basketball_ncaab", "label": "NCAAB"}
     ]
 
     picks = []
@@ -35,23 +50,29 @@ def generate_auto_picks():
 
         for game in data:
             if not game.get("bookmakers"):
-                logging.info("Skipped: No bookmakers")
                 continue
 
             markets = game["bookmakers"][0].get("markets", [])
             if not markets or not markets[0].get("outcomes"):
-                logging.info("Skipped: No valid markets")
-                continue
-
-            if not game.get("teams") or len(game["teams"]) < 2:
-                logging.info("Skipped: Missing teams")
                 continue
 
             outcomes = markets[0]["outcomes"]
-            team_a, team_b = game["teams"]
+            teams = game.get("teams", ["Unknown A", "Unknown B"])
+            if len(teams) < 2:
+                teams = ["Unknown A", "Unknown B"]
+
+            team_a, team_b = teams
             chosen = random.choice(outcomes)
-            sharp_pct = random.randint(60, 78)
-            confidence = "High" if sharp_pct > 72 else "Medium" if sharp_pct > 66 else "Low"
+            sharp_pct = random.randint(60, 94)
+
+            if sharp_pct >= 88:
+                confidence = "Elite 🔒 Max Confidence"
+            elif sharp_pct > 72:
+                confidence = "High"
+            elif sharp_pct > 66:
+                confidence = "Medium"
+            else:
+                confidence = "Low"
 
             picks.append({
                 "league": league["label"],
@@ -64,19 +85,21 @@ def generate_auto_picks():
                 "result": ""
             })
 
-    logging.info(f"Total picks generated: {len(picks)}")
+    picks = sorted(picks, key=lambda x: int(x["sharp"].strip('%')), reverse=True)
+    top_picks = picks[:7]
 
-    sorted_picks = sorted(picks, key=lambda x: int(x["sharp"].strip('%')), reverse=True)
-    top_picks = sorted_picks[:7]
-
-    if top_picks:
+    if top_picks and "Elite" not in top_picks[0]["confidence"]:
         top_picks[0]["confidence"] += " 🔥 X's Absolute Best Bet"
 
+    CACHE["timestamp"] = now
+    CACHE["picks"] = top_picks
+
+    logging.info(f"Total picks generated: {len(top_picks)}")
     return jsonify(top_picks)
 
 @app.route("/api/leagues")
 def get_league_list():
-    return jsonify(["MLB", "NBA"])
+    return jsonify(["MLB", "NBA", "Soccer EPL", "NFL", "NHL", "NCAAB"])
 
 if __name__ == "__main__":
     app.run(debug=True)

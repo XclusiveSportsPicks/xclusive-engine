@@ -6,60 +6,116 @@
   <title>Xclusive Sports Picks</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
       background: #0a0a0a;
-      color: #f8f8f8;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+    }
+    header {
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+    header img {
+      height: 60px;
     }
     h1 {
       color: #FFD700;
+      margin: 5px 0;
     }
-    .pick {
-      border: 1px solid #333;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #ccc;
+    }
+    select {
+      margin: 15px auto;
+      display: block;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #444;
+      background: #1e1e1e;
+      color: white;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
       background: #1a1a1a;
+      border-radius: 10px;
+      border-left: 5px solid #555;
+      margin: 10px;
+      padding: 15px;
+      width: 280px;
+      box-shadow: 0 0 10px #000;
     }
-    .high { color: #00ff91; }
-    .medium { color: #ffae00; }
-    .low { color: #ff4d4d; }
-    .elite { color: #ff00e6; font-weight: bold; }
-    .best-bet { border-left: 5px solid gold; padding-left: 10px; }
+    .card h3 {
+      color: #FFD700;
+      margin: 0 0 10px;
+    }
+    .elite { border-left-color: #ff00e6; }
+    .high { border-left-color: #00ff91; }
+    .medium { border-left-color: #ffaa00; }
+    .low { border-left-color: #ff4d4d; }
   </style>
 </head>
 <body>
-  <h1>🧠 Xclusive Sports Picks</h1>
-  <p>Last updated: {{ last_updated }}</p>
-  <div id="picks"></div>
+  <header>
+    <img src="/static/logo.png" alt="Xclusive Logo" />
+    <h1>XCLUSIVE SPORTS PICKS</h1>
+    <p id="timestamp">Loading...</p>
+    <select id="leagueFilter">
+      <option value="ALL">All Sports</option>
+    </select>
+  </header>
+
+  <div class="grid" id="picksContainer"></div>
 
   <script>
-    fetch("/api/auto-picks")
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("picks");
-        if (data.length === 0) {
-          container.innerHTML = "<p>No picks available right now. Check back soon.</p>";
-          return;
-        }
-        data.forEach(pick => {
+    let picks = [];
+
+    function renderPicks(filter) {
+      const container = document.getElementById("picksContainer");
+      container.innerHTML = "";
+      picks
+        .filter(p => filter === "ALL" || p.league === filter)
+        .forEach(p => {
           const div = document.createElement("div");
-          div.className = "pick " + (
-            pick.confidence.includes('Elite') ? "elite best-bet" :
-            pick.confidence.includes('High') ? "high" :
-            pick.confidence.includes('Medium') ? "medium" : "low"
-          );
+          div.className = `card ${p.confidence.toLowerCase().includes('elite') ? 'elite' :
+                                  p.confidence.toLowerCase().includes('high') ? 'high' :
+                                  p.confidence.toLowerCase().includes('medium') ? 'medium' : 'low'}`;
           div.innerHTML = `
-            <strong>${pick.league}</strong><br>
-            <em>${pick.game}</em><br>
-            <b>Pick:</b> ${pick.pick} @ ${pick.odds} <br>
-            <b>Confidence:</b> ${pick.confidence} <br>
-            <b>Sharp %:</b> ${pick.sharp}
+            <h3>${p.emoji} ${p.league}</h3>
+            <strong>${p.game}</strong><br>
+            <b>Pick:</b> ${p.pick} @ ${p.odds}<br>
+            <b>Sharp %:</b> ${p.sharp}<br>
+            <b>Confidence:</b> ${p.confidence}
           `;
           container.appendChild(div);
         });
+    }
+
+    fetch("/api/auto-picks")
+      .then(res => res.json())
+      .then(data => {
+        picks = data;
+        renderPicks("ALL");
+        document.getElementById("timestamp").textContent = "Last updated: " + new Date().toLocaleString();
+        const leagues = [...new Set(picks.map(p => p.league))];
+        leagues.forEach(l => {
+          const opt = document.createElement("option");
+          opt.value = l;
+          opt.textContent = l;
+          document.getElementById("leagueFilter").appendChild(opt);
+        });
       });
+
+    document.getElementById("leagueFilter").addEventListener("change", e => {
+      renderPicks(e.target.value);
+    });
   </script>
 </body>
 </html>

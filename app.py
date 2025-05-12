@@ -1,68 +1,43 @@
 from flask import Flask, render_template, jsonify
-import requests
 from datetime import datetime, timedelta
 import random
-import logging
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
 
-# Simple in-memory cache
+# Cache picks for 10 minutes
 CACHE = {
     "timestamp": None,
     "picks": []
 }
 
-@app.route("/")
-def index():
-    return render_template("index.html", last_updated=datetime.now().strftime("%Y-%m-%d %H:%M"))
+# League definitions
+LEAGUES = [
+    {"key": "MLB", "emoji": "⚾️"},
+    {"key": "NBA", "emoji": "🏀"},
+    {"key": "NFL", "emoji": "🏈"},
+    {"key": "NHL", "emoji": "🏒"},
+    {"key": "SOCCER", "emoji": "⚽️"},
+    {"key": "NCAAB", "emoji": "🎓"}
+]
 
-@app.route("/api/auto-picks")
-def generate_auto_picks():
-    now = datetime.now()
-    if CACHE["timestamp"] and now - CACHE["timestamp"] < timedelta(minutes=10):
-        logging.info("Using cached picks.")
-        return jsonify(CACHE["picks"])
+# Team pools per league
+TEAM_BANK = {
+    "MLB": ["Yankees", "Dodgers", "Astros", "Mets", "Cubs", "Guardians"],
+    "NBA": ["Lakers", "Celtics", "Heat", "Knicks", "Warriors", "Nuggets"],
+    "NFL": ["Eagles", "Chiefs", "Bills", "Cowboys", "49ers", "Packers"],
+    "NHL": ["Rangers", "Bruins", "Maple Leafs", "Golden Knights", "Canucks", "Devils"],
+    "SOCCER": ["Man City", "Liverpool", "Arsenal", "Chelsea", "Barcelona", "Real Madrid", "PSG", "Bayern", "Inter", "Atletico"],
+    "NCAAB": ["Duke", "UNC", "Kansas", "Gonzaga", "Kentucky", "UCLA"]
+}
 
-    API_KEY = "1256c747dab65e1c3cd504f9a3f4802b"
-
-    leagues = [
-        {"key": "baseball_mlb", "label": "MLB"},
-        {"key": "basketball_nba", "label": "NBA"},
-        {"key": "soccer_epl", "label": "Soccer EPL"},
-        {"key": "americanfootball_nfl", "label": "NFL"},
-        {"key": "icehockey_nhl", "label": "NHL"},
-        {"key": "basketball_ncaab", "label": "NCAAB"}
-    ]
-
+# Simulate picks
+def simulate_picks():
     picks = []
-
-    for league in leagues:
-        url = f"https://api.the-odds-api.com/v4/sports/{league['key']}/odds/?apiKey={API_KEY}&regions=us&markets=h2h&oddsFormat=american"
-        logging.info(f"Requesting: {league['label']} - {url}")
-        response = requests.get(url)
-        if response.status_code != 200:
-            logging.warning(f"Failed to load {league['label']}: Status {response.status_code}")
-            continue
-
-        data = response.json()
-        logging.info(f"{league['label']} - Games found: {len(data)}")
-
-        for game in data:
-            if not game.get("bookmakers"):
-                continue
-
-            markets = game["bookmakers"][0].get("markets", [])
-            if not markets or not markets[0].get("outcomes"):
-                continue
-
-            outcomes = markets[0]["outcomes"]
-            teams = game.get("teams", ["Unknown A", "Unknown B"])
-            if len(teams) < 2:
-                teams = ["Unknown A", "Unknown B"]
-
-            team_a, team_b = teams
-            chosen = random.choice(outcomes)
+    for league in LEAGUES:
+        for _ in range(1):  # One game per league
+            teams = random.sample(TEAM_BANK[league["key"]], 2)
+            chosen = random.choice(teams)
+            odds = random.choice([-110, -120, +105, +115, +130])
             sharp_pct = random.randint(60, 94)
 
             if sharp_pct >= 88:
@@ -75,31 +50,38 @@ def generate_auto_picks():
                 confidence = "Low"
 
             picks.append({
-                "league": league["label"],
-                "game": f"{team_a} vs. {team_b}",
-                "pick": chosen["name"],
-                "odds": chosen["price"],
+                "league": league["key"],
+                "emoji": league["emoji"],
+                "game": f"{teams[0]} vs {teams[1]}",
+                "pick": chosen,
+                "odds": odds,
                 "sharp": f"{sharp_pct}%",
-                "confidence": confidence,
-                "status": "Projected",
-                "result": ""
+                "confidence": confidence
             })
 
+    # Sort and assign Best Bet 🔥
     picks = sorted(picks, key=lambda x: int(x["sharp"].strip('%')), reverse=True)
-    top_picks = picks[:7]
+    if picks and "Elite" not in picks[0]["confidence"]:
+        picks[0]["confidence"] += " 🔥 X's Absolute Best Bet"
+    return picks
 
-    if top_picks and "Elite" not in top_picks[0]["confidence"]:
-        top_picks[0]["confidence"] += " 🔥 X's Absolute Best Bet"
+@app.route("/")
+def index():
+    return render_template("index.html", last_updated=datetime.now().strftime("%Y-%m-%d %H:%M"))
 
+@app.route("/api/auto-picks")
+def auto_picks():
+    now = datetime.now()
+    if CACHE["timestamp"] and now - CACHE["timestamp"] < timedelta(minutes=10):
+        return jsonify(CACHE["picks"])
+    picks = simulate_picks()
     CACHE["timestamp"] = now
-    CACHE["picks"] = top_picks
-
-    logging.info(f"Total picks generated: {len(top_picks)}")
-    return jsonify(top_picks)
+    CACHE["picks"] = picks
+    return jsonify(picks)
 
 @app.route("/api/leagues")
-def get_league_list():
-    return jsonify(["MLB", "NBA", "Soccer EPL", "NFL", "NHL", "NCAAB"])
+def get_leagues():
+    return jsonify([l["key"] for l in LEAGUES])
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -46,6 +46,9 @@ def generate_auto_picks():
             if not markets or not markets[0].get("outcomes"):
                 continue
 
+            if not game.get("teams") or len(game["teams"]) < 2:
+                continue
+
             outcomes = markets[0]["outcomes"]
             team_a, team_b = game["teams"]
             chosen = random.choice(outcomes)

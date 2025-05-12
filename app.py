@@ -42,9 +42,12 @@ def generate_auto_picks():
             if not game.get("bookmakers"):
                 continue
 
-            team_a, team_b = game["teams"]
-            outcomes = game["bookmakers"][0]["markets"][0]["outcomes"]
+            markets = game["bookmakers"][0].get("markets", [])
+            if not markets or not markets[0].get("outcomes"):
+                continue
 
+            outcomes = markets[0]["outcomes"]
+            team_a, team_b = game["teams"]
             chosen = random.choice(outcomes)
             sharp_pct = random.randint(60, 78)
             confidence = "High" if sharp_pct > 72 else "Medium" if sharp_pct > 66 else "Low"

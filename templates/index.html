@@ -1,67 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Xclusive Sports Picks</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #111;
-            color: #fff;
-            padding: 20px;
-        }
-        h1 {
-            color: gold;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: #222;
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #333;
-            text-align: center;
-        }
-        th {
-            background: #333;
-            color: gold;
-        }
-        .status-confirmed { color: lime; }
-        .status-progress { color: orange; }
-        .status-miss { color: red; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Xclusive Sports Picks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      padding: 2rem;
+    }
+    h1 {
+      color: #f5b400;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #555;
+      text-align: center;
+    }
+    th {
+      background: #222;
+    }
+    .best {
+      background: #f5b400;
+      color: #000;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <h1>🔥 Xclusive Daily Picks 🔥</h1>
-    <p>Last updated: {{ last_updated }}</p>
+  <h1>🔥 Xclusive Daily Auto Picks 🔥</h1>
+  <p>Last updated: <span id="timestamp"></span></p>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Game</th>
-                <th>Pick</th>
-                <th>Odds</th>
-                <th>Confidence</th>
-                <th>Sharp %</th>
-                <th>Status</th>
-                <th>Result</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pick in picks %}
-            <tr>
-                <td>{{ pick.game }}</td>
-                <td>{{ pick.pick }}</td>
-                <td>{{ pick.odds }}</td>
-                <td>{{ pick.confidence }}</td>
-                <td>{{ pick.sharp }}</td>
-                <td class="status-{{ pick.status | lower | replace(' ', '-') }}">{{ pick.status }}</td>
-                <td>{{ pick.result }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  <table id="picks-table">
+    <thead>
+      <tr>
+        <th>League</th>
+        <th>Game</th>
+        <th>Pick</th>
+        <th>Odds</th>
+        <th>Confidence</th>
+        <th>Sharp %</th>
+      </tr>
+    </thead>
+    <tbody id="picks-body">
+      <tr><td colspan="6">Loading picks...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    async function loadPicks() {
+      const res = await fetch('/api/auto-picks');
+      const picks = await res.json();
+      const body = document.getElementById('picks-body');
+      const timestamp = document.getElementById('timestamp');
+      const now = new Date().toLocaleString();
+      timestamp.textContent = now;
+      body.innerHTML = '';
+
+      picks.forEach(pick => {
+        const row = document.createElement('tr');
+        if (pick.confidence.includes("X's Absolute Best Bet")) row.classList.add('best');
+
+        row.innerHTML = `
+          <td>${pick.league}</td>
+          <td>${pick.game}</td>
+          <td>${pick.pick}</td>
+          <td>${pick.odds}</td>
+          <td>${pick.confidence}</td>
+          <td>${pick.sharp}</td>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    loadPicks();
+  </script>
 </body>
 </html>

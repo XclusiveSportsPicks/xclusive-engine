@@ -4,7 +4,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Static example picks (these can be replaced by live-generated ones later)
+# Static sample picks (replace with real model output later)
 picks = [
     {
         "game": "Yankees vs. Red Sox",
@@ -26,53 +26,61 @@ picks = [
     }
 ]
 
-# Homepage route
 @app.route("/")
 def index():
     return render_template("index.html", picks=picks, last_updated=datetime.now().strftime("%Y-%m-%d %H:%M"))
 
-# API route for getting current picks
 @app.route("/api/picks", methods=["GET"])
 def get_picks():
     return jsonify(picks)
 
-# NEW API route to pull today's MLB schedule & odds from The Odds API
 @app.route("/api/games")
-def get_today_mlb_games():
-    API_KEY = "1256c747dab65e1c3cd504f9a3f4802b "  # Replace with your key or load from environment
-    url = f"https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey={API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american"
-    
-    response = requests.get(url)
-    if response.status_code != 200:
-        return jsonify({"error": "Failed to fetch data", "status": response.status_code}), 500
+def get_today_games_all_sports():
+    API_KEY = "1256c747dab65e1c3cd504f9a3f4802b"  # Provided Odds API Key
 
-    odds_data = response.json()
-    formatted = []
+    leagues = [
+        {"key": "baseball_mlb", "label": "MLB"},
+        {"key": "basketball_nba", "label": "NBA"},
+        {"key": "soccer_epl", "label": "Soccer EPL"},
+        {"key": "americanfootball_nfl", "label": "NFL"},
+        {"key": "icehockey_nhl", "label": "NHL"}
+    ]
 
-    for game in odds_data:
-        teams = game.get("teams", [])
-        time = game.get("commence_time", "")
-        bookmakers = game.get("bookmakers", [])
+    all_games = []
 
-        if bookmakers:
-            book = bookmakers[0]
-            markets = book.get("markets", [])
-            odds_summary = {}
+    for league in leagues:
+        url = f"https://api.the-odds-api.com/v4/sports/{league['key']}/odds/?apiKey={API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american"
+        response = requests.get(url)
 
-            for market in markets:
-                if market["key"] == "h2h":
-                    for outcome in market["outcomes"]:
-                        odds_summary[outcome["name"]] = outcome["price"]
+        if response.status_code != 200:
+            continue  # Skip league if it fails
 
-            formatted.append({
-                "teams": teams,
-                "time": time,
-                "odds": odds_summary,
-                "bookmaker": book.get("title", "N/A")
-            })
+        odds_data = response.json()
 
-    return jsonify({"games": formatted})
+        for game in odds_data:
+            teams = game.get("teams", [])
+            time = game.get("commence_time", "")
+            bookmakers = game.get("bookmakers", [])
 
-# Run the app locally
+            if bookmakers:
+                book = bookmakers[0]
+                markets = book.get("markets", [])
+                odds_summary = {}
+
+                for market in markets:
+                    if market["key"] == "h2h":
+                        for outcome in market["outcomes"]:
+                            odds_summary[outcome["name"]] = outcome["price"]
+
+                all_games.append({
+                    "league": league["label"],
+                    "teams": teams,
+                    "time": time,
+                    "odds": odds_summary,
+                    "bookmaker": book.get("title", "N/A")
+                })
+
+    return jsonify({"games": all_games})
+
 if __name__ == "__main__":
     app.run(debug=True)

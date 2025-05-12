@@ -5,38 +5,26 @@
   <title>Xclusive Sports Picks</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      background: #111;
-      color: #fff;
-      font-family: sans-serif;
-      padding: 2rem;
-    }
-    h1 {
-      color: #f5b400;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      padding: 12px;
-      border: 1px solid #555;
-      text-align: center;
-    }
-    th {
-      background: #222;
-    }
-    .best {
-      background: #f5b400;
-      color: #000;
-      font-weight: bold;
-    }
+    body { background: #111; color: #fff; font-family: sans-serif; padding: 2rem; }
+    h1 { color: #f5b400; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 10px; border: 1px solid #444; text-align: center; }
+    th { background: #222; }
+    .best { background: #f5b400; color: #000; font-weight: bold; }
+    .controls { margin-bottom: 1rem; }
+    select { padding: 5px; font-size: 1rem; }
   </style>
 </head>
 <body>
   <h1>🔥 Xclusive Daily Auto Picks 🔥</h1>
   <p>Last updated: <span id="timestamp"></span></p>
+
+  <div class="controls">
+    <label for="league-select">Filter by League:</label>
+    <select id="league-select" onchange="filterByLeague()">
+      <option value="All">All</option>
+    </select>
+  </div>
 
   <table id="picks-table">
     <thead>
@@ -55,19 +43,41 @@
   </table>
 
   <script>
+    let allPicks = [];
+
     async function loadPicks() {
       const res = await fetch('/api/auto-picks');
       const picks = await res.json();
-      const body = document.getElementById('picks-body');
-      const timestamp = document.getElementById('timestamp');
       const now = new Date().toLocaleString();
-      timestamp.textContent = now;
+      document.getElementById('timestamp').textContent = now;
+      allPicks = picks;
+      renderTable(picks);
+    }
+
+    async function loadLeagues() {
+      const res = await fetch('/api/leagues');
+      const leagues = await res.json();
+      const select = document.getElementById('league-select');
+
+      leagues.forEach(league => {
+        const opt = document.createElement('option');
+        opt.value = league;
+        opt.textContent = league;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderTable(picks) {
+      const body = document.getElementById('picks-body');
       body.innerHTML = '';
+      if (picks.length === 0) {
+        body.innerHTML = '<tr><td colspan="6">No picks available</td></tr>';
+        return;
+      }
 
       picks.forEach(pick => {
         const row = document.createElement('tr');
         if (pick.confidence.includes("X's Absolute Best Bet")) row.classList.add('best');
-
         row.innerHTML = `
           <td>${pick.league}</td>
           <td>${pick.game}</td>
@@ -80,6 +90,17 @@
       });
     }
 
+    function filterByLeague() {
+      const selected = document.getElementById('league-select').value;
+      if (selected === 'All') {
+        renderTable(allPicks);
+      } else {
+        const filtered = allPicks.filter(p => p.league === selected);
+        renderTable(filtered);
+      }
+    }
+
+    loadLeagues();
     loadPicks();
   </script>
 </body>

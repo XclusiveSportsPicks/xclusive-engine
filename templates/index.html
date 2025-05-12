@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Xclusive Sports Picks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #fff;
+            padding: 20px;
+        }
+        h1 {
+            color: gold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #222;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+        th {
+            background: #333;
+            color: gold;
+        }
+        .status-confirmed { color: lime; }
+        .status-progress { color: orange; }
+        .status-miss { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Xclusive Daily Picks 🔥</h1>
+    <p>Last updated: {{ last_updated }}</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Game</th>
+                <th>Pick</th>
+                <th>Odds</th>
+                <th>Confidence</th>
+                <th>Sharp %</th>
+                <th>Status</th>
+                <th>Result</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pick in picks %}
+            <tr>
+                <td>{{ pick.game }}</td>
+                <td>{{ pick.pick }}</td>
+                <td>{{ pick.odds }}</td>
+                <td>{{ pick.confidence }}</td>
+                <td>{{ pick.sharp }}</td>
+                <td class="status-{{ pick.status | lower | replace(' ', '-') }}">{{ pick.status }}</td>
+                <td>{{ pick.result }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

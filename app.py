@@ -16,9 +16,17 @@ def generate_auto_picks():
     leagues = [
         {"key": "baseball_mlb", "label": "MLB"},
         {"key": "basketball_nba", "label": "NBA"},
-        {"key": "soccer_epl", "label": "Soccer EPL"},
         {"key": "americanfootball_nfl", "label": "NFL"},
-        {"key": "icehockey_nhl", "label": "NHL"}
+        {"key": "icehockey_nhl", "label": "NHL"},
+        {"key": "soccer_epl", "label": "Soccer EPL"},
+        {"key": "soccer_usa_mls", "label": "Soccer MLS"},
+        {"key": "soccer_spain_la_liga", "label": "Soccer La Liga"},
+        {"key": "soccer_italy_serie_a", "label": "Soccer Serie A"},
+        {"key": "soccer_germany_bundesliga", "label": "Soccer Bundesliga"},
+        {"key": "soccer_france_ligue_one", "label": "Soccer Ligue 1"},
+        {"key": "soccer_uefa_champs_league", "label": "Soccer UCL"},
+        {"key": "soccer_south_america_copa_libertadores", "label": "Copa Libertadores"},
+        {"key": "soccer_international_friendly", "label": "Intl Soccer"}
     ]
 
     picks = []
@@ -62,7 +70,12 @@ def generate_auto_picks():
 
 @app.route("/api/leagues")
 def get_league_list():
-    return jsonify(["MLB", "NBA", "Soccer EPL", "NFL", "NHL"])
+    return jsonify([
+        "MLB", "NBA", "NFL", "NHL",
+        "Soccer EPL", "Soccer MLS", "Soccer La Liga", "Soccer Serie A",
+        "Soccer Bundesliga", "Soccer Ligue 1", "Soccer UCL",
+        "Copa Libertadores", "Intl Soccer"
+    ])
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -75,6 +75,12 @@
       color: #999;
       font-size: 11px;
     }
+    .no-picks {
+      text-align: center;
+      font-size: 18px;
+      padding: 40px;
+      color: #888;
+    }
   </style>
 </head>
 <body>
@@ -88,6 +94,7 @@
   </header>
 
   <div class="grid" id="picksContainer"></div>
+  <div id="noPicks" class="no-picks" style="display: none;">🚫 No sharp-qualified picks found today. Check back later.</div>
 
   <script>
     let picks = [];
@@ -95,47 +102,62 @@
 
     function renderPicks(filter) {
       const container = document.getElementById("picksContainer");
+      const noPicksMessage = document.getElementById("noPicks");
       container.innerHTML = "";
-      picks
-        .filter(p => filter === "ALL" || p.league === filter)
-        .forEach(p => {
-          const div = document.createElement("div");
-          const tier = p.confidence.toLowerCase();
-          const statusText = statuses[p.game] || "Status Unknown";
-          div.className = `card ${tier.includes('elite') ? 'elite' : tier.includes('high') ? 'high' : tier.includes('medium') ? 'medium' : 'low'}`;
-          div.innerHTML = `
-            <h3>${p.emoji} ${p.league}</h3>
-            <strong>${p.game}</strong><br>
-            <b>Pick:</b> ${p.pick} @ ${p.odds}<br>
-            <b>Sharp %:</b> ${p.sharp}<br>
-            <b>Confidence:</b> ${p.confidence}<br>
-            <div class="stake-bar"><div class="stake-fill" style="width: ${p.stake}%;"></div></div>
-            <small>Stake: ${p.stake}% unit</small><br>
-            <small><b>Status:</b> ${statusText}</small>
-          `;
-          container.appendChild(div);
-        });
+
+      const filtered = picks.filter(p => filter === "ALL" || p.league === filter);
+      if (filtered.length === 0) {
+        noPicksMessage.style.display = "block";
+        return;
+      } else {
+        noPicksMessage.style.display = "none";
+      }
+
+      filtered.forEach(p => {
+        const div = document.createElement("div");
+        const tier = p.confidence.toLowerCase();
+        const statusText = statuses[p.game] || "Status Unknown";
+        div.className = `card ${tier.includes('elite') ? 'elite' : tier.includes('high') ? 'high' : tier.includes('medium') ? 'medium' : 'low'}`;
+        div.innerHTML = `
+          <h3>${p.emoji} ${p.league}</h3>
+          <strong>${p.game}</strong><br>
+          <b>Pick:</b> ${p.pick} @ ${p.odds}<br>
+          <b>Sharp %:</b> ${p.sharp}<br>
+          <b>Confidence:</b> ${p.confidence}<br>
+          <div class="stake-bar"><div class="stake-fill" style="width: ${p.stake}%;"></div></div>
+          <small>Stake: ${p.stake}% unit</small><br>
+          <small><b>Status:</b> ${statusText}</small>
+        `;
+        container.appendChild(div);
+      });
     }
 
     async function loadData() {
-      const [pickRes, statusRes] = await Promise.all([
-        fetch("/api/auto-picks"),
-        fetch("/api/game-status")
-      ]);
-      picks = await pickRes.json();
-      statuses = await statusRes.json();
+      try {
+        const [pickRes, statusRes] = await Promise.all([
+          fetch("/api/auto-picks"),
+          fetch("/api/game-status")
+        ]);
+        picks = await pickRes.json();
+        statuses = await statusRes.json();
 
-      renderPicks("ALL");
-      document.getElementById("timestamp").textContent = "Last updated: " + new Date().toLocaleString();
-      const leagues = [...new Set(picks.map(p => p.league))];
-      const dropdown = document.getElementById("leagueFilter");
-      dropdown.innerHTML = `<option value="ALL">All Sports</option>`;
-      leagues.forEach(l => {
-        const opt = document.createElement("option");
-        opt.value = l;
-        opt.textContent = l;
-        dropdown.appendChild(opt);
-      });
+        renderPicks("ALL");
+        document.getElementById("timestamp").textContent = "Last updated: " + new Date().toLocaleString();
+
+        const leagues = [...new Set(picks.map(p => p.league))];
+        const dropdown = document.getElementById("leagueFilter");
+        dropdown.innerHTML = `<option value="ALL">All Sports</option>`;
+        leagues.forEach(l => {
+          const opt = document.createElement("option");
+          opt.value = l;
+          opt.textContent = l;
+          dropdown.appendChild(opt);
+        });
+      } catch (e) {
+        document.getElementById("noPicks").textContent = "⚠️ Error loading picks. Please try again shortly.";
+        document.getElementById("noPicks").style.display = "block";
+        console.error("Fetch error:", e);
+      }
     }
 
     document.getElementById("leagueFilter").addEventListener("change", e => {

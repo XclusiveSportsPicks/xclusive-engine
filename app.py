@@ -4,9 +4,6 @@ import requests
 
 app = Flask(__name__)
 
-# ------------------------
-# CONFIG
-# ------------------------
 ODDS_API_KEY = "1256c747dab65e1c3cd504f9a3f4802b"
 SPORTS = {
     "NBA": {"odds_key": "basketball_nba", "espn": "basketball/nba", "emoji": "🏀"},
@@ -19,13 +16,12 @@ SPORTS = {
 BOOKMAKER = "draftkings"
 CACHE = {"timestamp": None, "picks": [], "status": {}}
 
-# ------------------------
-# HELPERS
-# ------------------------
+
 def kelly_fraction(prob, odds):
     b = abs((odds / 100) if odds > 0 else (100 / abs(odds))) - 1
     f = (prob * (b + 1) - 1) / b if b > 0 else 0
     return max(0, min(f * 0.5, 1))
+
 
 def fetch_espn_status():
     status_map = {}
@@ -38,24 +34,32 @@ def fetch_espn_status():
                 name = game.get("shortName", "")
                 status = game.get("status", {}).get("type", {}).get("name", "")
                 status_map[name] = "Confirmed Final" if "FINAL" in status else "In Progress"
-        except:
-            continue
+        except Exception as e:
+            print(f"[ESPN ERROR] {league} failed: {e}")
     return status_map
+
 
 def fetch_all_picks():
     picks = []
     for league, meta in SPORTS.items():
         url = f"https://api.the-odds-api.com/v4/sports/{meta['odds_key']}/odds"
         try:
-            r = requests.get(url, params={"apiKey": ODDS_API_KEY, "regions": "us", "markets": "h2h", "bookmakers": BOOKMAKER})
+            r = requests.get(url, params={
+                "apiKey": ODDS_API_KEY,
+                "regions": "us",
+                "markets": "h2h",
+                "bookmakers": BOOKMAKER
+            })
             if r.status_code != 200:
+                print(f"[ODDSAPI ERROR] {league}: {r.status_code} - {r.text}")
                 continue
+
             games = r.json()
             for game in games:
                 home = game.get("home_team", "")
                 away = game.get("away_team", "")
                 matchup = f"{home} vs {away}"
-                outcomes = game["bookmakers"][0].get("markets", [])[0].get("outcomes", [])
+                outcomes = game.get("bookmakers", [])[0].get("markets", [])[0].get("outcomes", [])
                 for outcome in outcomes:
                     team = outcome["name"]
                     odds = outcome["price"]
@@ -78,19 +82,22 @@ def fetch_all_picks():
                         "stake": round(stake_pct * 100),
                         "sharp_delta": sharp_delta
                     })
-        except:
+        except Exception as e:
+            print(f"[ODDSAPI ERROR] {league} exception: {e}")
             continue
+
+    print(f"[DEBUG] {len(picks)} sharp-qualified picks generated.")
+
     picks = sorted(picks, key=lambda x: x["sharp_delta"], reverse=True)
     if picks:
         picks[0]["confidence"] += " 🔥 X's Absolute Best Bet"
     return picks
 
-# ------------------------
-# ROUTES
-# ------------------------
+
 @app.route("/")
 def index():
     return render_template("index.html", last_updated=datetime.now().strftime("%Y-%m-%d %H:%M"))
+
 
 @app.route("/api/auto-picks")
 def auto_picks():
@@ -102,9 +109,11 @@ def auto_picks():
     CACHE["timestamp"] = now
     return jsonify(CACHE["picks"])
 
+
 @app.route("/api/game-status")
 def game_status():
     return jsonify(CACHE["status"] if CACHE["status"] else fetch_espn_status())
+
 
 if __name__ == "__main__":
     app.run(debug=True)

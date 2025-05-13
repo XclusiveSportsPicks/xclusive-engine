@@ -94,6 +94,16 @@ try:
         skipped += 1
         print(f"[SKIP] {league} - Missing teams")
         continue
+except Exception as e:
+    skipped += 1
+    print(f"[SKIP] {league} - Error retrieving teams: {e}")
+    continue
+
+except Exception as e:
+    skipped += 1
+    print(f"[SKIP] {league} - Error retrieving teams: {e}")
+    continue
+
 
 
                     bookmakers = game.get("bookmakers", [])

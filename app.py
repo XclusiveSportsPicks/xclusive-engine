@@ -68,12 +68,13 @@ def fetch_picks():
         print(f"[Fetch Error] {outer_err}")
     return picks
 
+from datetime import datetime  # ✅ Add this at the top
 
-# --- Homepage Route ---
 @app.route('/')
 def home():
     picks = fetch_picks()
-    return render_template('index.html', picks=picks)
+    return render_template('index.html', picks=picks, now=datetime.utcnow)
+
 
 # --- Auto-Updated Picks API ---
 @cache.cached(timeout=AUTO_REFRESH_MINUTES * 60, key_prefix='auto_picks')

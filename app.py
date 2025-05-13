@@ -46,9 +46,9 @@ def calculate_sharp_percent(bet_pct, money_pct):
 
 # --- Picks Builder ---
 def fetch_picks():
+    picks = []
     try:
         raw_data = fetch_external_data()
-        picks = []
         for item in raw_data:
             try:
                 sharp_delta = calculate_sharp_percent(item['bet_pct'], item['money_pct'])
@@ -63,11 +63,11 @@ def fetch_picks():
                         'result': item.get('final_result', '')
                     })
             except Exception as inner_err:
-                print(f"[Pick Parse Error] {inner_err}")
-    except Exception as err:
-        print(f"[Fetch Error] {err}")
-        return []
+                print(f"[Pick Error] {inner_err} for item: {item}")
+    except Exception as outer_err:
+        print(f"[Fetch Error] {outer_err}")
     return picks
+
 
 # --- Homepage Route ---
 @app.route('/')

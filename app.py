@@ -22,14 +22,17 @@ CACHE = {
     "picks": []
 }
 
-LEAGUE_MAP = {
-    "MLB": "baseball_mlb",
-    "NBA": "basketball_nba",
-    "NFL": "americanfootball_nfl",
-    "NHL": "icehockey_nhl",
-    "SOCCER": "soccer_epl",
-    "NCAAB": "basketball_ncaab"
-}
+from datetime import datetime
+
+def get_active_leagues():
+    return {
+        "MLB": "baseball_mlb",
+        "NBA": "basketball_nba",
+        "NHL": "icehockey_nhl",
+        "SOCCER": "soccer_epl"
+        # NFL, NCAAF, and other off-season leagues are temporarily disabled
+    }
+
 
 EMOJIS = {
     "MLB": "⚾️", "NBA": "🏀", "NFL": "🏈",
@@ -67,88 +70,99 @@ def get_weather_risk(team):
 
 def fetch_picks():
     picks = []
-    for league, sport_key in LEAGUE_MAP.items():
-        response = requests.get(
-            ODDS_API_URL.format(sport=sport_key),
-            params={
-                "apiKey": API_KEY,
-                "regions": "us",
-                "markets": "h2h,spreads",
-                "oddsFormat": "american"
-            }
-        )
-        if response.status_code != 200:
-            continue
-
-        games = response.json()
-        if not games:
-            continue
-
-        for game in games:
-            teams = game.get("teams", [])
-            bookmakers = game.get("bookmakers", [])
-
-            if len(teams) < 2 or not bookmakers:
+    total_checked = 0
+    skipped = 0
+    for league, sport_key in get_active_leagues().items():
+        try:
+            response = requests.get(
+                ODDS_API_URL.format(sport=sport_key),
+                params={"apiKey": API_KEY, "regions": "us", "markets": "h2h,spreads", "oddsFormat": "american"}
+            )
+            if response.status_code != 200:
+                print(f"[ERROR] Failed to fetch {league} data: {response.status_code}")
                 continue
 
-            team_1, team_2 = teams
-            outcomes = bookmakers[0]["markets"][0]["outcomes"]
-            if not outcomes or len(outcomes) < 1:
-                continue
+            games = response.json()
+            print(f"[INFO] {league} - Games found: {len(games)}")
 
-            chosen = outcomes[0]["name"]
-            odds = outcomes[0]["price"]
-            open_odds = outcomes[0].get("point", odds)
+            for game in games:
+                total_checked += 1
+                try:
+                    teams = game.get("teams", [])
+                    if len(teams) < 2:
+                        skipped += 1
+                        print(f"[SKIP] {league} - Missing teams")
+                        continue
 
-            line_movement = odds - open_odds
-            sharp_tag = "Sharp Side" if abs(line_movement) >= 10 and line_movement < 0 else (
-                         "Public Fade" if abs(line_movement) >= 10 else "None")
-            estimated_sharp_pct = min(95, 60 + abs(line_movement))
+                    bookmakers = game.get("bookmakers", [])
+                    if not bookmakers or not bookmakers[0].get("markets"):
+                        skipped += 1
+                        print(f"[SKIP] {league} - No markets")
+                        continue
 
-            status = get_espn_game_status(league, team_1, team_2)
-            condition, weather_alert = get_weather_risk(team_1 if league == "MLB" else team_2)
+                    outcomes = bookmakers[0]["markets"][0].get("outcomes", [])
+                    if not outcomes or len(outcomes) < 1:
+                        skipped += 1
+                        print(f"[SKIP] {league} - No outcomes")
+                        continue
 
-            confidence_score = 7.0
-            if sharp_tag == "Sharp Side":
-                confidence_score += 1.0
-            elif sharp_tag == "Public Fade":
-                confidence_score += 0.5
-            if abs(line_movement) >= 15:
-                confidence_score += 0.5
-            if weather_alert:
-                confidence_score -= 0.5
-            confidence_score = round(confidence_score, 1)
+                    team_1, team_2 = teams
+                    chosen = outcomes[0]["name"]
+                    odds = outcomes[0]["price"]
+                    open_odds = outcomes[0].get("point", odds)
 
-            if confidence_score >= 9.0:
-                confidence = "Elite 🔒 Max Confidence"
-            elif confidence_score >= 8.0:
-                confidence = "High"
-            elif confidence_score >= 7.0:
-                confidence = "Medium"
-            else:
-                confidence = "Low"
+                    line_movement = odds - open_odds
+                    sharp_tag = "Sharp Side" if abs(line_movement) >= 10 and line_movement < 0 else (
+                                "Public Fade" if abs(line_movement) >= 10 else "None")
+                    estimated_sharp_pct = min(95, 60 + abs(line_movement))
 
-            picks.append({
-                "league": league,
-                "emoji": EMOJIS.get(league, ""),
-                "game": f"{team_1} vs {team_2}",
-                "pick": chosen,
-                "odds": odds,
-                "sharp": f"{estimated_sharp_pct}%",
-                "confidence": confidence,
-                "confidence_score": confidence_score,
-                "status": status,
-                "weather_alert": weather_alert,
-                "weather": condition,
-                "line_movement": line_movement,
-                "sharp_tag": sharp_tag
-            })
+                    status = get_espn_game_status(league, team_1, team_2)
+                    condition, weather_alert = get_weather_risk(team_1 if league == "MLB" else team_2)
 
+                    confidence_score = 7.0
+                    if sharp_tag == "Sharp Side": confidence_score += 1.0
+                    elif sharp_tag == "Public Fade": confidence_score += 0.5
+                    if abs(line_movement) >= 15: confidence_score += 0.5
+                    if weather_alert: confidence_score -= 0.5
+                    confidence_score = round(confidence_score, 1)
+
+                    if confidence_score >= 9.0:
+                        confidence = "Elite 🔒 Max Confidence"
+                    elif confidence_score >= 8.0:
+                        confidence = "High"
+                    elif confidence_score >= 7.0:
+                        confidence = "Medium"
+                    else:
+                        confidence = "Low"
+
+                    picks.append({
+                        "league": league,
+                        "emoji": EMOJIS.get(league, ""),
+                        "game": f"{team_1} vs {team_2}",
+                        "pick": chosen,
+                        "odds": odds,
+                        "sharp": f"{estimated_sharp_pct}%",
+                        "confidence": confidence,
+                        "confidence_score": confidence_score,
+                        "status": status,
+                        "weather_alert": weather_alert,
+                        "weather": condition,
+                        "line_movement": line_movement,
+                        "sharp_tag": sharp_tag
+                    })
+                except Exception as e:
+                    skipped += 1
+                    print(f"[SKIP] {league} - Error processing game: {e}")
+        except Exception as e:
+            print(f"[ERROR] Fetch error for {league}: {e}")
+
+    print(f"[SUMMARY] Total checked: {total_checked}, Skipped: {skipped}, Final picks: {len(picks)}")
 
     picks = sorted(picks, key=lambda x: x["confidence_score"], reverse=True)
     if picks and "Elite" not in picks[0]["confidence"]:
         picks[0]["confidence"] += " 🔥 X's Absolute Best Bet"
     return picks
+
 
 @app.route("/")
 def index():

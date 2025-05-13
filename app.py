@@ -87,7 +87,7 @@ def fetch_picks():
 
             for game in games:
                 total_checked += 1
-try:
+        try:
             teams = game.get("teams") or [game.get("home_team"), game.get("away_team")]
             if len(teams) < 2:
                 skipped += 1
@@ -120,14 +120,10 @@ try:
             condition, weather_alert = get_weather_risk(team_1 if league == "MLB" else team_2)
 
             confidence_score = 7.0
-            if sharp_tag == "Sharp Side":
-                confidence_score += 1.0
-            elif sharp_tag == "Public Fade":
-                confidence_score += 0.5
-            if abs(line_movement) >= 15:
-                confidence_score += 0.5
-            if weather_alert:
-                confidence_score -= 0.5
+            if sharp_tag == "Sharp Side": confidence_score += 1.0
+            elif sharp_tag == "Public Fade": confidence_score += 0.5
+            if abs(line_movement) >= 15: confidence_score += 0.5
+            if weather_alert: confidence_score -= 0.5
             confidence_score = round(confidence_score, 1)
 
             if confidence_score >= 9.0:
@@ -154,11 +150,9 @@ try:
                 "line_movement": line_movement,
                 "sharp_tag": sharp_tag
             })
-
         except Exception as e:
             skipped += 1
             print(f"[SKIP] {league} - Error processing game: {e}")
-
     except Exception as e:
         print(f"[ERROR] Fetch error for {league}: {e}")
 
@@ -190,4 +184,3 @@ def get_leagues():
 
 if __name__ == "__main__":
     app.run(debug=True)
-

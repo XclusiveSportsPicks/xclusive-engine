@@ -1,170 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Xclusive Sports Picks</title>
-  <style>
-    body {
-      background: #0a0a0a;
-      color: #f0f0f0;
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      text-align: center;
-      padding: 20px 0 10px;
-    }
-    header img {
-      height: 60px;
-    }
-    h1 {
-      color: #FFD700;
-      margin: 5px 0;
-    }
-    p {
-      margin: 0;
-      font-size: 14px;
-      color: #ccc;
-    }
-    select {
-      margin: 15px auto;
-      display: block;
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid #444;
-      background: #1e1e1e;
-      color: white;
-    }
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 20px;
-    }
-    .card {
-      background: #1a1a1a;
-      border-radius: 10px;
-      border-left: 5px solid #555;
-      margin: 10px;
-      padding: 15px;
-      width: 300px;
-      box-shadow: 0 0 10px #000;
-    }
-    .card h3 {
-      color: #FFD700;
-      margin: 0 0 10px;
-    }
-    .elite { border-left-color: #ff00e6; }
-    .high { border-left-color: #00ff91; }
-    .medium { border-left-color: #ffaa00; }
-    .low { border-left-color: #ff4d4d; }
-    .stake-bar {
-      background: #333;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 10px;
-      height: 8px;
-    }
-    .stake-fill {
-      background: #FFD700;
-      height: 100%;
-    }
-    small {
-      color: #999;
-      font-size: 11px;
-    }
-    .no-picks {
-      text-align: center;
-      font-size: 18px;
-      padding: 40px;
-      color: #888;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Xclusive Sports Picks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; background: #121212; color: #f1f1f1; padding: 2rem; }
+        h1 { color: gold; }
+        .pick-card {
+            border: 1px solid #444;
+            border-left: 8px solid limegreen;
+            background: #1e1e1e;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .pick-header { font-size: 1.2rem; font-weight: bold; color: #FFD700; }
+        .label { font-weight: bold; color: #aaa; }
+        .high { color: limegreen; }
+        .medium { color: gold; }
+        .risky { color: orangered; }
+        .footer { margin-top: 3rem; font-size: 0.9rem; color: #777; }
+    </style>
 </head>
 <body>
-  <header>
-    <img src="/static/logo.png" alt="Xclusive Logo" />
-    <h1>XCLUSIVE SPORTS PICKS</h1>
-    <p id="timestamp">Loading...</p>
-    <select id="leagueFilter">
-      <option value="ALL">All Sports</option>
-    </select>
-  </header>
+    <h1>🔥 Xclusive Daily Picks</h1>
+    <p>These are today's sharpest picks, filtered by confidence and sharp action.</p>
 
-  <div class="grid" id="picksContainer"></div>
-  <div id="noPicks" class="no-picks" style="display: none;">🚫 No sharp-qualified picks found. Check back later.</div>
+    {% if picks %}
+        {% for pick in picks %}
+            <div class="pick-card">
+                <div class="pick-header">{{ pick.game }}</div>
+                <p><span class="label">Pick:</span> {{ pick.pick }} @ {{ pick.odds }}</p>
+                <p>
+                    <span class="label">Confidence:</span>
+                    <span class="{% if pick.confidence >= 8.5 %}high{% elif pick.confidence >= 7.5 %}medium{% else %}risky{% endif %}">
+                        {{ pick.confidence }}/10
+                    </span>
+                </p>
+                <p><span class="label">Sharp %:</span> {{ pick.sharp_percent }}%</p>
+                <p><span class="label">Status:</span> {{ pick.status }}</p>
+                {% if pick.result %}
+                    <p><span class="label">Result:</span> {{ pick.result }}</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>⚠️ No picks available. Please check back soon.</p>
+    {% endif %}
 
-  <script>
-    let picks = [];
-    let statuses = {};
-
-    function renderPicks(filter) {
-      const container = document.getElementById("picksContainer");
-      const noPicksMessage = document.getElementById("noPicks");
-      container.innerHTML = "";
-
-      const filtered = picks.filter(p => filter === "ALL" || p.league === filter);
-      if (filtered.length === 0) {
-        noPicksMessage.style.display = "block";
-        return;
-      } else {
-        noPicksMessage.style.display = "none";
-      }
-
-      filtered.forEach(p => {
-        const div = document.createElement("div");
-        const tier = p.confidence.toLowerCase();
-        const statusText = statuses[p.game] || "Status Unknown";
-        div.className = `card ${tier.includes('elite') ? 'elite' : tier.includes('high') ? 'high' : tier.includes('medium') ? 'medium' : 'low'}`;
-        div.innerHTML = `
-          <h3>${p.emoji} ${p.league}</h3>
-          <strong>${p.game}</strong><br>
-          <b>Pick:</b> ${p.pick} @ ${p.odds}<br>
-          <b>Sharp %:</b> ${p.sharp}<br>
-          <b>Confidence:</b> ${p.confidence}<br>
-          <div class="stake-bar"><div class="stake-fill" style="width: ${p.stake}%;"></div></div>
-          <small>Stake: ${p.stake}% unit</small><br>
-          <small><b>Status:</b> ${statusText}</small>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    async function loadData() {
-      try {
-        const [pickRes, statusRes] = await Promise.all([
-          fetch("/api/auto-picks"),
-          fetch("/api/game-status")
-        ]);
-        picks = await pickRes.json();
-        statuses = await statusRes.json();
-
-        renderPicks("ALL");
-        document.getElementById("timestamp").textContent = "Last updated: " + new Date().toLocaleString();
-
-        const leagues = [...new Set(picks.map(p => p.league))];
-        const dropdown = document.getElementById("leagueFilter");
-        dropdown.innerHTML = `<option value="ALL">All Sports</option>`;
-        leagues.forEach(l => {
-          const opt = document.createElement("option");
-          opt.value = l;
-          opt.textContent = l;
-          dropdown.appendChild(opt);
-        });
-      } catch (e) {
-        document.getElementById("noPicks").textContent = "⚠️ Error loading picks. Please try again shortly.";
-        document.getElementById("noPicks").style.display = "block";
-        console.error("Fetch error:", e);
-      }
-    }
-
-    document.getElementById("leagueFilter").addEventListener("change", e => {
-      renderPicks(e.target.value);
-    });
-
-    loadData();
-  </script>
+    <div class="footer">
+        Last updated: {{ now().strftime('%Y-%m-%d %H:%M UTC') }} |
+        Auto-refreshes every 10 min | Powered by ESPN/Sharp Feed
+    </div>
 </body>
 </html>

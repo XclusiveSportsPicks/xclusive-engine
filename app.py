@@ -87,13 +87,14 @@ def fetch_picks():
 
             for game in games:
                 total_checked += 1
-                try:
-teams = game.get("teams") or [game.get("home_team"), game.get("away_team")]
+try:
+    teams = game.get("teams") or [game.get("home_team"), game.get("away_team")]
 
-                    if len(teams) < 2:
-                        skipped += 1
-                        print(f"[SKIP] {league} - Missing teams")
-                        continue
+    if len(teams) < 2:
+        skipped += 1
+        print(f"[SKIP] {league} - Missing teams")
+        continue
+
 
                     bookmakers = game.get("bookmakers", [])
                     if not bookmakers or not bookmakers[0].get("markets"):

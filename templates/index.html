@@ -49,7 +49,7 @@
       border-left: 5px solid #555;
       margin: 10px;
       padding: 15px;
-      width: 280px;
+      width: 300px;
       box-shadow: 0 0 10px #000;
     }
     .card h3 {
@@ -60,6 +60,21 @@
     .high { border-left-color: #00ff91; }
     .medium { border-left-color: #ffaa00; }
     .low { border-left-color: #ff4d4d; }
+    .stake-bar {
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+      height: 8px;
+    }
+    .stake-fill {
+      background: #FFD700;
+      height: 100%;
+    }
+    small {
+      color: #999;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -76,6 +91,7 @@
 
   <script>
     let picks = [];
+    let statuses = {};
 
     function renderPicks(filter) {
       const container = document.getElementById("picksContainer");
@@ -84,38 +100,49 @@
         .filter(p => filter === "ALL" || p.league === filter)
         .forEach(p => {
           const div = document.createElement("div");
-          div.className = `card ${p.confidence.toLowerCase().includes('elite') ? 'elite' :
-                                  p.confidence.toLowerCase().includes('high') ? 'high' :
-                                  p.confidence.toLowerCase().includes('medium') ? 'medium' : 'low'}`;
+          const tier = p.confidence.toLowerCase();
+          const statusText = statuses[p.game] || "Status Unknown";
+          div.className = `card ${tier.includes('elite') ? 'elite' : tier.includes('high') ? 'high' : tier.includes('medium') ? 'medium' : 'low'}`;
           div.innerHTML = `
             <h3>${p.emoji} ${p.league}</h3>
             <strong>${p.game}</strong><br>
             <b>Pick:</b> ${p.pick} @ ${p.odds}<br>
             <b>Sharp %:</b> ${p.sharp}<br>
-            <b>Confidence:</b> ${p.confidence}
+            <b>Confidence:</b> ${p.confidence}<br>
+            <div class="stake-bar"><div class="stake-fill" style="width: ${p.stake}%;"></div></div>
+            <small>Stake: ${p.stake}% unit</small><br>
+            <small><b>Status:</b> ${statusText}</small>
           `;
           container.appendChild(div);
         });
     }
 
-    fetch("/api/auto-picks")
-      .then(res => res.json())
-      .then(data => {
-        picks = data;
-        renderPicks("ALL");
-        document.getElementById("timestamp").textContent = "Last updated: " + new Date().toLocaleString();
-        const leagues = [...new Set(picks.map(p => p.league))];
-        leagues.forEach(l => {
-          const opt = document.createElement("option");
-          opt.value = l;
-          opt.textContent = l;
-          document.getElementById("leagueFilter").appendChild(opt);
-        });
+    async function loadData() {
+      const [pickRes, statusRes] = await Promise.all([
+        fetch("/api/auto-picks"),
+        fetch("/api/game-status")
+      ]);
+      picks = await pickRes.json();
+      statuses = await statusRes.json();
+
+      renderPicks("ALL");
+      document.getElementById("timestamp").textContent = "Last updated: " + new Date().toLocaleString();
+      const leagues = [...new Set(picks.map(p => p.league))];
+      const dropdown = document.getElementById("leagueFilter");
+      dropdown.innerHTML = `<option value="ALL">All Sports</option>`;
+      leagues.forEach(l => {
+        const opt = document.createElement("option");
+        opt.value = l;
+        opt.textContent = l;
+        dropdown.appendChild(opt);
       });
+    }
 
     document.getElementById("leagueFilter").addEventListener("change", e => {
       renderPicks(e.target.value);
     });
+
+    loadData();
   </script>
 </body>
 </html>

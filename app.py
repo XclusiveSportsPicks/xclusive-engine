@@ -1,70 +1,93 @@
 from flask import Flask, render_template, jsonify
 from datetime import datetime, timedelta
-import random
+import requests
 
 app = Flask(__name__)
 
-# Cache picks for 10 minutes
-CACHE = {
-    "timestamp": None,
-    "picks": []
+# ------------------------
+# CONFIG
+# ------------------------
+ODDS_API_KEY = "1256c747dab65e1c3cd504f9a3f4802b"
+SPORTS = {
+    "NBA": {"odds_key": "basketball_nba", "espn": "basketball/nba", "emoji": "🏀"},
+    "MLB": {"odds_key": "baseball_mlb", "espn": "baseball/mlb", "emoji": "⚾️"},
+    "NFL": {"odds_key": "americanfootball_nfl", "espn": "football/nfl", "emoji": "🏈"},
+    "NHL": {"odds_key": "icehockey_nhl", "espn": "hockey/nhl", "emoji": "🏒"},
+    "SOCCER": {"odds_key": "soccer_epl", "espn": "soccer/eng.1", "emoji": "⚽️"},
+    "NCAAB": {"odds_key": "basketball_ncaab", "espn": "basketball/mens-college-basketball", "emoji": "🎓"}
 }
+BOOKMAKER = "draftkings"
+CACHE = {"timestamp": None, "picks": [], "status": {}}
 
-# League definitions
-LEAGUES = [
-    {"key": "MLB", "emoji": "⚾️"},
-    {"key": "NBA", "emoji": "🏀"},
-    {"key": "NFL", "emoji": "🏈"},
-    {"key": "NHL", "emoji": "🏒"},
-    {"key": "SOCCER", "emoji": "⚽️"},
-    {"key": "NCAAB", "emoji": "🎓"}
-]
+# ------------------------
+# HELPERS
+# ------------------------
+def kelly_fraction(prob, odds):
+    b = abs((odds / 100) if odds > 0 else (100 / abs(odds))) - 1
+    f = (prob * (b + 1) - 1) / b if b > 0 else 0
+    return max(0, min(f * 0.5, 1))
 
-# Team pools per league
-TEAM_BANK = {
-    "MLB": ["Yankees", "Dodgers", "Astros", "Mets", "Cubs", "Guardians"],
-    "NBA": ["Lakers", "Celtics", "Heat", "Knicks", "Warriors", "Nuggets"],
-    "NFL": ["Eagles", "Chiefs", "Bills", "Cowboys", "49ers", "Packers"],
-    "NHL": ["Rangers", "Bruins", "Maple Leafs", "Golden Knights", "Canucks", "Devils"],
-    "SOCCER": ["Man City", "Liverpool", "Arsenal", "Chelsea", "Barcelona", "Real Madrid", "PSG", "Bayern", "Inter", "Atletico"],
-    "NCAAB": ["Duke", "UNC", "Kansas", "Gonzaga", "Kentucky", "UCLA"]
-}
+def fetch_espn_status():
+    status_map = {}
+    for league, meta in SPORTS.items():
+        url = f"https://site.api.espn.com/apis/site/v2/sports/{meta['espn']}/scoreboard"
+        try:
+            r = requests.get(url, timeout=5)
+            events = r.json().get("events", [])
+            for game in events:
+                name = game.get("shortName", "")
+                status = game.get("status", {}).get("type", {}).get("name", "")
+                status_map[name] = "Confirmed Final" if "FINAL" in status else "In Progress"
+        except:
+            continue
+    return status_map
 
-# Simulate picks
-def simulate_picks():
+def fetch_all_picks():
     picks = []
-    for league in LEAGUES:
-        for _ in range(1):  # One game per league
-            teams = random.sample(TEAM_BANK[league["key"]], 2)
-            chosen = random.choice(teams)
-            odds = random.choice([-110, -120, +105, +115, +130])
-            sharp_pct = random.randint(60, 94)
-
-            if sharp_pct >= 88:
-                confidence = "Elite 🔒 Max Confidence"
-            elif sharp_pct > 72:
-                confidence = "High"
-            elif sharp_pct > 66:
-                confidence = "Medium"
-            else:
-                confidence = "Low"
-
-            picks.append({
-                "league": league["key"],
-                "emoji": league["emoji"],
-                "game": f"{teams[0]} vs {teams[1]}",
-                "pick": chosen,
-                "odds": odds,
-                "sharp": f"{sharp_pct}%",
-                "confidence": confidence
-            })
-
-    # Sort and assign Best Bet 🔥
-    picks = sorted(picks, key=lambda x: int(x["sharp"].strip('%')), reverse=True)
-    if picks and "Elite" not in picks[0]["confidence"]:
+    for league, meta in SPORTS.items():
+        url = f"https://api.the-odds-api.com/v4/sports/{meta['odds_key']}/odds"
+        try:
+            r = requests.get(url, params={"apiKey": ODDS_API_KEY, "regions": "us", "markets": "h2h", "bookmakers": BOOKMAKER})
+            if r.status_code != 200:
+                continue
+            games = r.json()
+            for game in games:
+                home = game.get("home_team", "")
+                away = game.get("away_team", "")
+                matchup = f"{home} vs {away}"
+                outcomes = game["bookmakers"][0].get("markets", [])[0].get("outcomes", [])
+                for outcome in outcomes:
+                    team = outcome["name"]
+                    odds = outcome["price"]
+                    bet_pct = outcome.get("bet_percentage", 0)
+                    money_pct = outcome.get("money_percentage", 0)
+                    sharp_delta = money_pct - bet_pct
+                    if sharp_delta < 30:
+                        continue
+                    score = (money_pct + sharp_delta) / 2
+                    tier = "Elite 🔒 Max Confidence" if score >= 88 else "High" if score >= 75 else "Medium" if score >= 66 else "Low"
+                    stake_pct = kelly_fraction(money_pct / 100, odds)
+                    picks.append({
+                        "league": league,
+                        "emoji": meta["emoji"],
+                        "game": matchup,
+                        "pick": team,
+                        "odds": odds,
+                        "sharp": f"{money_pct}%",
+                        "confidence": tier,
+                        "stake": round(stake_pct * 100),
+                        "sharp_delta": sharp_delta
+                    })
+        except:
+            continue
+    picks = sorted(picks, key=lambda x: x["sharp_delta"], reverse=True)
+    if picks:
         picks[0]["confidence"] += " 🔥 X's Absolute Best Bet"
     return picks
 
+# ------------------------
+# ROUTES
+# ------------------------
 @app.route("/")
 def index():
     return render_template("index.html", last_updated=datetime.now().strftime("%Y-%m-%d %H:%M"))
@@ -74,14 +97,14 @@ def auto_picks():
     now = datetime.now()
     if CACHE["timestamp"] and now - CACHE["timestamp"] < timedelta(minutes=10):
         return jsonify(CACHE["picks"])
-    picks = simulate_picks()
+    CACHE["picks"] = fetch_all_picks()
+    CACHE["status"] = fetch_espn_status()
     CACHE["timestamp"] = now
-    CACHE["picks"] = picks
-    return jsonify(picks)
+    return jsonify(CACHE["picks"])
 
-@app.route("/api/leagues")
-def get_leagues():
-    return jsonify([l["key"] for l in LEAGUES])
+@app.route("/api/game-status")
+def game_status():
+    return jsonify(CACHE["status"] if CACHE["status"] else fetch_espn_status())
 
 if __name__ == "__main__":
     app.run(debug=True)

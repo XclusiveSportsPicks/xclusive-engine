@@ -55,14 +55,30 @@ def fetch_all_picks():
                 continue
 
             games = r.json()
+            print(f"[INFO] {league} - Games found: {len(games)}")
             for game in games:
                 home = game.get("home_team", "")
                 away = game.get("away_team", "")
                 matchup = f"{home} vs {away}"
-                outcomes = game.get("bookmakers", [])[0].get("markets", [])[0].get("outcomes", [])
+
+                bookmakers = game.get("bookmakers", [])
+                if not bookmakers:
+                    print(f"[SKIP] {matchup} - no bookmakers")
+                    continue
+
+                markets = bookmakers[0].get("markets", [])
+                if not markets:
+                    print(f"[SKIP] {matchup} - no markets")
+                    continue
+
+                outcomes = markets[0].get("outcomes", [])
+                if len(outcomes) < 2:
+                    print(f"[SKIP] {matchup} - incomplete outcomes")
+                    continue
+
                 for outcome in outcomes:
-                    team = outcome["name"]
-                    odds = outcome["price"]
+                    team = outcome.get("name")
+                    odds = outcome.get("price")
                     bet_pct = outcome.get("bet_percentage", 0)
                     money_pct = outcome.get("money_percentage", 0)
                     sharp_delta = money_pct - bet_pct

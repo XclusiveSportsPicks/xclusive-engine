@@ -1,0 +1,82 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Xclusive Sports Picks</title>
+  <style>
+    body {
+      background-color: #111;
+      color: gold;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #000;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    .container {
+      padding: 20px;
+    }
+    .pick {
+      border: 2px solid gold;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .best-bet {
+      background-color: #222;
+      border: 3px solid #ffd700;
+    }
+    .label {
+      color: #fff;
+      background-color: #ffd700;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>Xclusive Sports Picks</header>
+
+  <div class="container">
+    {% if picks %}
+      {% for pick in picks %}
+        <div class="pick {% if pick.label %}best-bet{% endif %}">
+          {% if pick.label %}
+            <div class="label">{{ pick.label }}</div>
+          {% endif %}
+          <p><strong>Matchup:</strong> {{ pick.matchup }}</p>
+          <p><strong>Confidence:</strong> {{ pick.confidence }}</p>
+          <p><strong>Sharp Delta:</strong> {{ pick.sharp_delta }}%</p>
+          <p><strong>Odds:</strong> {{ pick.odds }}</p>
+          <p><strong>Stake:</strong> {{ pick.stake }}</p>
+          <p><strong>Status:</strong> {{ pick.status }}</p>
+          <p><strong>Why I Like It:</strong> {{ pick.why }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>No picks available right now. Please check back later.</p>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    © {{ year }} Xclusive Sports Picks. All rights reserved.
+  </div>
+</body>
+</html>

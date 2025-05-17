@@ -1,47 +1,44 @@
-import datetime
-from ml_models.mlb_confidence import predict_confidence
+# mlb/engine.py
+
+from mlb.matchup import get_today_matchups
 from mlb.odds import fetch_latest_odds
-from mlb.matchup import get_matchups_today
 from mlb.stake import calculate_kelly_stake
 from mlb.why_i_like import generate_reason
+from ml_models.mlb_confidence import predict_confidence
 
 def get_today_mlb_picks():
-    matchups = get_matchups_today()
-    if not matchups:
-        print("[❌ Engine] No MLB matchups found.")
-        return []
-
+    matchups = get_today_matchups()
     picks = []
+
     for matchup in matchups:
         confidence = predict_confidence(matchup)
         if confidence < 7.5:
             continue
 
         odds, movement = fetch_latest_odds(matchup)
-        sharp_delta = 35  # Placeholder; replace with real logic later
+        if odds == -110.0:
+            continue
+
+        # Simulate sharp bet % data
+        bet_pct = 40
+        money_pct = 75
+        sharp_delta = money_pct - bet_pct
         if sharp_delta < 30:
             continue
 
         stake = calculate_kelly_stake(confidence, odds)
         reason = generate_reason(matchup, confidence, odds, sharp_delta)
 
-        pick = {
-            "game": matchup,
+        picks.append({
+            "matchup": matchup,
             "bet": "Moneyline",
             "confidence": round(confidence, 2),
             "sharp_delta": sharp_delta,
-            "why": reason,
+            "reason": reason,
             "odds": odds,
             "stake": stake,
-            "status": "PENDING",
-            "result": None,
-        }
-        picks.append(pick)
+            "movement": movement,
+            "status": "Pending",
+        })
 
-    # Sort by highest confidence
-    picks.sort(key=lambda x: x["confidence"], reverse=True)
-
-    if picks:
-        picks[0]["best_bet"] = True
-
-    return picks
+    return sorted(picks, key=lambda x: x["confidence"], reverse=True)

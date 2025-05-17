@@ -2,6 +2,9 @@
 
 import sys
 import os
+from datetime import datetime
+
+# Ensure parent dir is importable
 PARENT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if PARENT not in sys.path:
     sys.path.append(PARENT)
@@ -11,36 +14,41 @@ from ..odds_fetch import get_real_mlb_matchups
 from ..ml_models.mlb_confidence import predict_confidence
 from ..stake_calc import calculate_stake
 from ..why_i_like_it import generate_blurb
-from datetime import datetime
 
 
 def get_today_mlb_picks():
     matchups = get_real_mlb_matchups()
-    print("🧠 MATCHUPS RETURNED:", matchups)
+    print("📡 Pulled Matchups:", len(matchups))
 
+    today_str = datetime.now().strftime('%Y-%m-%d')
     picks = []
 
     for matchup in matchups:
         try:
             teams = matchup.get("teams", [])
+            game_date = matchup.get("date", today_str)
+
             if not teams or len(teams) != 2:
-                print("⛔ Invalid matchup teams:", teams)
+                print("⛔ Invalid team format:", matchup)
+                continue
+
+            if game_date != today_str:
+                print("⏭️ Skipping non-today game:", game_date)
                 continue
 
             money_pct = matchup.get("money_pct")
             bet_pct = matchup.get("bet_pct")
+
             if money_pct is None or bet_pct is None:
                 print("⛔ Missing sharp data:", matchup)
                 continue
 
             sharp_delta = money_pct - bet_pct
-            confidence = predict_confidence(teams[0], teams[1]) * 10  # scale to 10
+            confidence = predict_confidence(teams[0], teams[1]) * 10  # out of 10
 
-            print(f"🔍 {teams} → Conf: {confidence:.2f}, Sharp Δ: {sharp_delta}")
+            print(f"🧠 {teams} | Conf: {confidence:.2f}, Sharp Δ: {sharp_delta}")
 
-            if confidence < 7.5:
-                continue
-            if sharp_delta < 30:
+            if confidence < 7.5 or sharp_delta < 30:
                 continue
 
             pick = {
@@ -59,11 +67,10 @@ def get_today_mlb_picks():
             picks.append(pick)
 
         except Exception as e:
-            print("⚠️ Error processing matchup:", matchup)
-            print("Error:", e)
+            print("⚠️ Matchup Processing Error:", e)
 
     if picks:
         picks.sort(key=lambda x: x["confidence"], reverse=True)
-        picks[0]["best_bet"] = True
+        picks[0]["best_bet"] = True  # Mark highest-confidence pick
 
     return picks

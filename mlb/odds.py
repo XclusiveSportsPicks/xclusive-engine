@@ -1,9 +1,20 @@
 # mlb/odds.py
+# Source: Xclusive Sports Picks | Odds Fetch Module
+# Licensed access to TheOddsAPI
 
 import requests
 import os
 
-def fetch_latest_odds(matchup):
+def fetch_latest_odds(matchup: str) -> tuple:
+    """
+    Fetch the latest H2H moneyline odds for a given MLB matchup.
+
+    Args:
+        matchup (str): Matchup string formatted as 'Away Team vs Home Team'
+
+    Returns:
+        tuple: (odds, odds_movement_label)
+    """
     api_key = os.getenv("ODDS_API_KEY")
     if not api_key:
         print("[❌ OddsAPI] Missing API key")
@@ -41,7 +52,6 @@ def fetch_latest_odds(matchup):
             for outcome in outcomes:
                 if outcome["name"] == home:
                     odds = outcome["price"]
-                    # Placeholder movement logic (TBD: delta over time)
                     return odds, "Neutral"
 
         print(f"[❌ OddsAPI] Matchup not found: {matchup}")

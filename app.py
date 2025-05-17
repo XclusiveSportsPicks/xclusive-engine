@@ -1,12 +1,10 @@
 # app.py
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "mlb"))
+
 from dotenv import load_dotenv
 import os
 from flask import Flask, render_template, request
 from datetime import datetime
-from engine import get_today_mlb_picks
+from mlb.engine import get_today_mlb_picks  # ✅ Corrected import
 
 load_dotenv()
 
@@ -20,7 +18,7 @@ def index():
     if league == "MLB":
         picks = get_today_mlb_picks()
     else:
-        picks = []  # placeholder for NBA, UFC, etc.
+        picks = []
 
     return render_template(
         "index.html",

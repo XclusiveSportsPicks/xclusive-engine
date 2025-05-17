@@ -1,10 +1,12 @@
 # app.py
-
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "mlb"))
 from dotenv import load_dotenv
 import os
 from flask import Flask, render_template, request
 from datetime import datetime
-from mlb.engine import get_today_mlb_picks
+from engine import get_today_mlb_picks
 
 load_dotenv()
 

@@ -10,7 +10,7 @@ if PARENT not in sys.path:
     sys.path.append(PARENT)
 
 from .pitching import get_pitcher_stats
-from .odds import get_real_mlb_matchups  # ✅ correct for same-folder import
+from mlb.odds_fetch import get_real_mlb_matchups  # ✅ correct for same-folder import
 from ..ml_models.mlb_confidence import predict_confidence
 from ..stake_calc import calculate_stake
 from ..why_i_like_it import generate_blurb

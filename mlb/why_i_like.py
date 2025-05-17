@@ -1,4 +1,4 @@
-# mlb/why_ilike.py
+# mlb/why_i_like.py
 
 def generate_why_i_like(matchup, confidence, sharp_delta):
     """
@@ -23,3 +23,4 @@ def generate_why_i_like(matchup, confidence, sharp_delta):
         reasons.append(f"📊 {away} vs {home} profile fits elite criteria.")
 
     return " ".join(reasons)
+

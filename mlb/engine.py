@@ -1,23 +1,22 @@
 # mlb/engine.py
 
+from datetime import datetime
 from mlb.matchup import get_today_matchups
-from mlb.odds import fetch_latest_odds
+from mlb.odds import load_odds_once, fetch_latest_odds
 from mlb.sharp import fetch_sharp_percentages
 from mlb.stake import calculate_kelly_stake
 from mlb.why_i_like import generate_why_i_like
 from ml_models.mlb_confidence import predict_confidence
 
-from datetime import datetime
-
 def get_today_mlb_picks():
     matchups = get_today_matchups()
     sharp_data = fetch_sharp_percentages()
+    load_odds_once()  # Only fetch odds once and cache
 
     picks = []
 
     for matchup in matchups:
         confidence = predict_confidence(matchup)
-
         if confidence < 7.5:
             continue
 
@@ -46,10 +45,10 @@ def get_today_mlb_picks():
 
         picks.append(pick)
 
-    # Sort by confidence
+    # Sort by confidence descending
     picks.sort(key=lambda x: x["confidence"], reverse=True)
 
-    # Mark the top pick
+    # Flag top pick
     if picks:
         picks[0]["label"] = "Xs Absolute Best Bet"
 

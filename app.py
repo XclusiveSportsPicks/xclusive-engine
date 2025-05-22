@@ -9,8 +9,8 @@ from utils.team_name_map import normalize_team_name
 load_dotenv()
 app = Flask(__name__)
 
-SHARP_DELTA_THRESHOLD = 10
-MODEL_CONFIDENCE_MIN = 6.0
+SHARP_DELTA_THRESHOLD = 30
+MODEL_CONFIDENCE_MIN = 7.5
 
 @app.route("/")
 def homepage():

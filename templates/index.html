@@ -1,0 +1,48 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Xclusive Sports Picks</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <img src="/static/images/logo.png" alt="Xclusive Logo" class="logo">
+    </header>
+    <main>
+        <h1>🧠 Today's Exclusive MLB Picks</h1>
+        {% if picks %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Game</th>
+                    <th>Pick</th>
+                    <th>Odds</th>
+                    <th>Confidence</th>
+                    <th>Sharp %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pick in picks %}
+                <tr class="{% if loop.first %}best-bet{% endif %}">
+                    <td>{{ pick.game }}</td>
+                    <td>{{ pick.pick }}</td>
+                    <td>{{ pick.odds }}</td>
+                    <td><span class="confidence">{{ pick.confidence }}</span></td>
+                    <td>
+                        <div class="sharp-bar">
+                            <div class="sharp-fill" style="width: {{ pick.sharp_pct.split('Money ')[1].replace('%','') }}%;"></div>
+                        </div>
+                        <small>{{ pick.sharp_pct }}</small>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No picks available at the moment.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

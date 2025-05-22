@@ -1,0 +1,76 @@
+
+body {
+    background-color: #0d0d0d;
+    color: #f0d689;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    text-align: center;
+    padding: 1rem 0;
+    background-color: #000;
+}
+
+.logo {
+    max-width: 220px;
+}
+
+main {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    color: #f0d689;
+    margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #1a1a1a;
+}
+
+th, td {
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 1px solid #333;
+}
+
+th {
+    background-color: #111;
+    color: #f0d689;
+}
+
+tr.best-bet {
+    background-color: #262626;
+    font-weight: bold;
+    border-left: 4px solid gold;
+}
+
+.confidence {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    background-color: #333;
+    color: #f0d689;
+    font-weight: 600;
+}
+
+.sharp-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #333;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+
+.sharp-fill {
+    height: 100%;
+    background-color: gold;
+}

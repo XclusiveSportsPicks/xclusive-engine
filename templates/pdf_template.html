@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff;
+            color: #111;
+            padding: 20px;
+        }
+        h1 {
+            color: #d4af37;
+        }
+        .pick {
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+        .pick h2 {
+            margin: 0 0 5px;
+        }
+        .label {
+            font-weight: bold;
+        }
+        .best-bet {
+            border-left: 5px solid #d4af37;
+            padding-left: 10px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Xclusive Sports Picks - Daily PDF Report</h1>
+    <p>Generated: {{ now.strftime('%Y-%m-%d %I:%M %p %Z') }}</p>
+
+    {% for pick in picks %}
+        <div class="pick{% if loop.first %} best-bet{% endif %}">
+            <h2>{{ pick.game }}</h2>
+            <p><span class="label">Pick:</span> {{ pick.pick }}</p>
+            <p><span class="label">Odds:</span> {{ pick.odds }}</p>
+            <p><span class="label">Confidence:</span> {{ pick.confidence }}/10</p>
+            <p><span class="label">Sharp %:</span> {{ pick.sharp_percent }}%</p>
+            <p><span class="label">Stake:</span> {{ pick.units }} units</p>
+            <p><span class="label">Why I Like It:</span> {{ pick.why }}</p>
+            <p><span class="label">Status:</span> {{ pick.status }}</p>
+            {% if pick.result %}
+                <p><span class="label">Result:</span> {{ pick.result }}</p>
+            {% endif %}
+            {% if loop.first %}
+                <p><strong>🏆 X’s Absolute Best Bet</strong></p>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>

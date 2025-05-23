@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "[🔧 Installing Playwright browsers...]"
-playwright install
+npx playwright install --with-deps
+
 echo "[🚀 Launching Xclusive Engine...]"
-python app.py
+gunicorn app:app --bind 0.0.0.0:$PORT

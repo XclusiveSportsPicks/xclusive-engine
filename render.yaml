@@ -2,8 +2,8 @@ services:
   - type: web
     name: xclusive-sharp-engine
     env: python
-    buildCommand: bash start.sh
-    startCommand: gunicorn app:app
+    buildCommand: ""
+    startCommand: bash start.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.11

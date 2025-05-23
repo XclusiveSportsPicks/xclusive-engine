@@ -1,0 +1,23 @@
+{
+  "name": "xclusive_engine_sharp_live_final",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XclusiveSportsPicks/xclusive-engine.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/XclusiveSportsPicks/xclusive-engine/issues"
+  },
+  "homepage": "https://github.com/XclusiveSportsPicks/xclusive-engine#readme",
+  "description": "",
+  "dependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

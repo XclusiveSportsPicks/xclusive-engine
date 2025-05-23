@@ -1,10 +1,12 @@
 from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
-import os
 from datetime import datetime
 import asyncio
+import os
+
 from scraper.sharp_scraper_playwright import scrape_sao_live
 from utils.team_name_map import normalize_team_name
+from mlb.odds import get_odds_data
 
 load_dotenv()
 app = Flask(__name__)
@@ -14,28 +16,34 @@ MODEL_CONFIDENCE_MIN = 7.5
 
 @app.route("/")
 def homepage():
-    return render_template("index.html", picks=get_picks_data_only())
+    # Only static HTML – no async/scraping
+    return render_template("index.html")
 
 @app.route("/api/picks")
 def get_picks():
+    picks = get_picks_data_only()
     return jsonify({
         "generated_at": datetime.utcnow().isoformat(),
-        "count": len(get_picks_data_only()),
-        "picks": get_picks_data_only()
+        "count": len(picks),
+        "picks": picks
     })
 
 def get_picks_data_only():
-    from mlb.odds import get_odds_data
     sharp_data = asyncio.run(scrape_sao_live())
     odds_data = get_odds_data()
-
     picks = []
+
     for game in odds_data:
         team1 = normalize_team_name(game["team1"])
         team2 = normalize_team_name(game["team2"])
         odds1 = game["odds1"]
 
-        sharp = sharp_data.get(team1) or sharp_data.get(team1.split()[-1]) or sharp_data.get(team1.replace("New York", "NY"))
+        sharp = (
+            sharp_data.get(team1)
+            or sharp_data.get(team1.split()[-1])
+            or sharp_data.get(team1.replace("New York", "NY"))
+        )
+
         if not sharp:
             print(f"[SKIP] No sharp % for: {team1} vs {team2}")
             print(f"🔑 sharp_data keys: {list(sharp_data.keys())}")
@@ -43,8 +51,8 @@ def get_picks_data_only():
 
         bet_pct = sharp["bet_pct"]
         money_pct = sharp["money_pct"]
-        confidence_score = get_model_confidence(team1)
         sharp_diff = money_pct - bet_pct
+        confidence_score = get_model_confidence(team1)
 
         print(f"[DEBUG] {team1} vs {team2} — Bet: {bet_pct}%, Money: {money_pct}%, SharpDiff: {sharp_diff}, Confidence: {confidence_score}")
 
@@ -67,4 +75,4 @@ def get_model_confidence(team_name):
 
 if __name__ == "__main__":
     print("[🔥 Xclusive Engine LIVE with Sharp %]")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=True)

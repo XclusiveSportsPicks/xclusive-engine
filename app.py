@@ -67,4 +67,4 @@ def get_model_confidence(team_name):
 
 if __name__ == "__main__":
     print("[🔥 Xclusive Engine LIVE with Sharp %]")
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))

@@ -1,10 +1,11 @@
-
 from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
 import os
 from datetime import datetime
 import asyncio
+
 from scraper.sharp_scraper_playwright import scrape_sao_live
+from mlb.odds import get_odds_data
 from utils.team_name_map import normalize_team_name
 
 load_dotenv()
@@ -12,6 +13,18 @@ app = Flask(__name__)
 
 SHARP_DELTA_THRESHOLD = 30
 MODEL_CONFIDENCE_MIN = 7.5
+sharp_data = {}
+
+@app.before_first_request
+def preload_sharp_data():
+    global sharp_data
+    try:
+        print("[⚡ INIT] Scraping SAO data before first request...")
+        sharp_data = asyncio.run(scrape_sao_live())
+        print(f"[✅ INIT COMPLETE] Loaded sharp data for {len(sharp_data)} teams.")
+    except Exception as e:
+        print(f"[❌ ERROR] Failed to scrape sharp data: {e}")
+        sharp_data = {}
 
 @app.route("/")
 def homepage():
@@ -19,18 +32,16 @@ def homepage():
 
 @app.route("/api/picks")
 def get_picks():
+    picks = get_picks_data_only()
     return jsonify({
         "generated_at": datetime.utcnow().isoformat(),
-        "count": len(get_picks_data_only()),
-        "picks": get_picks_data_only()
+        "count": len(picks),
+        "picks": picks
     })
 
 def get_picks_data_only():
-    from mlb.odds import get_odds_data
-    sharp_data = asyncio.run(scrape_sao_live())
-    odds_data = get_odds_data()
-
     picks = []
+    odds_data = get_odds_data()
 
     for game in odds_data:
         team1 = normalize_team_name(game["team1"])

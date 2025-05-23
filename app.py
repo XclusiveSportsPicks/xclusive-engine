@@ -3,7 +3,8 @@ from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from scraper.sharp_scraper import get_sharp_data
+import asyncio
+from scraper.sharp_scraper_playwright import scrape_sao_live
 from utils.team_name_map import normalize_team_name
 
 load_dotenv()
@@ -26,7 +27,7 @@ def get_picks():
 
 def get_picks_data_only():
     from mlb.odds import get_odds_data
-    sharp_data = get_sharp_data()
+    sharp_data = asyncio.run(scrape_sao_live())
     odds_data = get_odds_data()
 
     picks = []
@@ -36,14 +37,18 @@ def get_picks_data_only():
         team2 = normalize_team_name(game["team2"])
         odds1 = game["odds1"]
 
-        sharp = sharp_data.get(team1)
+        sharp = sharp_data.get(team1) or sharp_data.get(team1.split()[-1]) or sharp_data.get(team1.replace("New York", "NY"))
         if not sharp:
+            print(f"[SKIP] No sharp % for: {team1} vs {team2}")
+            print(f"🔑 sharp_data keys: {list(sharp_data.keys())}")
             continue
 
         bet_pct = sharp["bet_pct"]
         money_pct = sharp["money_pct"]
         confidence_score = get_model_confidence(team1)
         sharp_diff = money_pct - bet_pct
+
+        print(f"[DEBUG] {team1} vs {team2} — Bet: {bet_pct}%, Money: {money_pct}%, SharpDiff: {sharp_diff}, Confidence: {confidence_score}")
 
         if sharp_diff >= SHARP_DELTA_THRESHOLD and confidence_score >= MODEL_CONFIDENCE_MIN:
             picks.append({
@@ -55,10 +60,10 @@ def get_picks_data_only():
                 "timestamp": datetime.utcnow().isoformat()
             })
 
+    print("🔍 Final Picks:", picks)
     return picks
 
 def get_model_confidence(team_name):
-    # TEMP: mock scores that vary slightly for realism
     from random import uniform
     return round(uniform(7.5, 9.7), 1)
 

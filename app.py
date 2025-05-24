@@ -20,10 +20,17 @@ def preload_sharp_data():
     sharp_data = loop.run_until_complete(scrape_sao_live())
     sharp_data_cache.update(sharp_data)
 
-@app.before_first_request
-def trigger_background_load():
-    thread = threading.Thread(target=preload_sharp_data)
-    thread.start()
+sharp_data_cache = {}
+
+def preload_sharp_data():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    from scraper.sharp_scraper_playwright import scrape_sao_live
+    sharp_data = loop.run_until_complete(scrape_sao_live())
+    sharp_data_cache.update(sharp_data)
+
+with app.app_context():
+    threading.Thread(target=preload_sharp_data).start()
 
 
 SHARP_DELTA_THRESHOLD = 30

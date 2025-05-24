@@ -57,10 +57,17 @@ def get_picks_data_only():
         odds1 = game["odds1"]
 
         sharp = None
-        for key in sharp_data.keys():
-            if normalize_team_name(key).lower() in [team1.lower(), team1.split()[-1].lower(), team1.replace("New York", "NY").lower()]:
-                sharp = sharp_data[key]
-                break
+for key in sharp_data.keys():
+    norm_key = normalize_team_name(key).lower()
+    norm_team1 = team1.lower()
+
+    if norm_key in [
+        norm_team1,
+        norm_team1.split()[-1],
+        norm_team1.replace("new york", "ny")
+    ]:
+        sharp = sharp_data[key]
+        break
 
         if not sharp:
             print(f"[SKIP] No sharp % for: {team1} vs {team2}")
@@ -94,7 +101,6 @@ def get_picks_data_only():
 
     print("✅ Final Picks:", picks)
     return picks
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

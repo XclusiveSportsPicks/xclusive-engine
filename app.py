@@ -20,7 +20,7 @@ def preload_sharp_data():
     sharp_data = loop.run_until_complete(scrape_sao_live())
     sharp_data_cache.update(sharp_data)
 
-# Start scraper in a background thread
+# Start scraper thread
 with app.app_context():
     threading.Thread(target=preload_sharp_data).start()
 
@@ -56,19 +56,7 @@ def get_picks_data_only():
         team2 = normalize_team_name(game["team2"])
         odds1 = game["odds1"]
 
-        sharp = None
-for key in sharp_data.keys():
-    norm_key = normalize_team_name(key).lower()
-    norm_team1 = team1.lower()
-
-    if norm_key in [
-        norm_team1,
-        norm_team1.split()[-1],
-        norm_team1.replace("new york", "ny")
-    ]:
-        sharp = sharp_data[key]
-        break
-
+        sharp = sharp_data.get(team1) or sharp_data.get(team1.split()[-1]) or sharp_data.get(team1.replace("New York", "NY"))
         if not sharp:
             print(f"[SKIP] No sharp % for: {team1} vs {team2}")
             continue
@@ -80,11 +68,11 @@ for key in sharp_data.keys():
 
         print(f"[DEBUG] {team1} vs {team2} — Bet: {bet_pct}%, Money: {money_pct}%, SharpDiff: {sharp_diff}, Confidence: {confidence_score}")
 
-        if confidence_score >= 9.0 and sharp_diff >= 10:
+        if confidence_score >= 9.0 and sharp_diff >= 15:
             confidence_tier = "High"
-        elif confidence_score >= 8.0 and sharp_diff >= 15:
+        elif confidence_score >= 8.0 and sharp_diff >= 20:
             confidence_tier = "Medium"
-        elif confidence_score >= 7.5 and sharp_diff >= 20:
+        elif confidence_score >= 7.5 and sharp_diff >= 25:
             confidence_tier = "Risk"
         else:
             continue

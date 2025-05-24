@@ -56,7 +56,12 @@ def get_picks_data_only():
         team2 = normalize_team_name(game["team2"])
         odds1 = game["odds1"]
 
-        sharp = sharp_data.get(team1) or sharp_data.get(team1.split()[-1]) or sharp_data.get(team1.replace("New York", "NY"))
+        sharp = None
+        for key in sharp_data.keys():
+            if normalize_team_name(key).lower() in [team1.lower(), team1.split()[-1].lower(), team1.replace("New York", "NY").lower()]:
+                sharp = sharp_data[key]
+                break
+
         if not sharp:
             print(f"[SKIP] No sharp % for: {team1} vs {team2}")
             continue
@@ -68,11 +73,11 @@ def get_picks_data_only():
 
         print(f"[DEBUG] {team1} vs {team2} — Bet: {bet_pct}%, Money: {money_pct}%, SharpDiff: {sharp_diff}, Confidence: {confidence_score}")
 
-        if confidence_score >= 9.0 and sharp_diff >= 15:
+        if confidence_score >= 9.0 and sharp_diff >= 10:
             confidence_tier = "High"
-        elif confidence_score >= 8.0 and sharp_diff >= 20:
+        elif confidence_score >= 8.0 and sharp_diff >= 15:
             confidence_tier = "Medium"
-        elif confidence_score >= 7.5 and sharp_diff >= 25:
+        elif confidence_score >= 7.5 and sharp_diff >= 20:
             confidence_tier = "Risk"
         else:
             continue
@@ -89,6 +94,7 @@ def get_picks_data_only():
 
     print("✅ Final Picks:", picks)
     return picks
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

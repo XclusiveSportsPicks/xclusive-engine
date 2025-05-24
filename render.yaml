@@ -2,10 +2,10 @@ services:
   - type: web
     name: xclusive-sharp-engine
     env: python
-    buildCommand: bash start_render_safe.sh
-    startCommand: python -m gunicorn app:app
+    buildCommand: bash start.sh
+    startCommand: python app.py   # ✅ this line is key
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
-    plan: starter               
+    plan: starter
     autoDeploy: true

@@ -7,7 +7,8 @@ from scraper.sharp_scraper_playwright import scrape_sao_live
 from utils.team_name_map import normalize_team_name
 
 load_dotenv()
-app = Flask(__name__)
+import os
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
 import threading
 
@@ -41,7 +42,11 @@ MODEL_CONFIDENCE_MIN = 7.5
 
 @app.route("/")
 def homepage():
-    return render_template("index.html", picks=get_picks_data_only())
+    try:
+        picks = get_picks_data_only()
+        return render_template("index.html", picks=picks)
+    except Exception as e:
+        return f"❌ Error rendering homepage: {e}", 500
 
 @app.route("/api/picks")
 def get_picks():

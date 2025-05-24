@@ -58,6 +58,23 @@ def get_picks():
     })
 
 def get_picks_data_only():
+    # MOCKED PICK STRUCTURE for template rendering
+    return [{
+        "game": "Cubs vs Reds",
+        "pick": "Cubs ML",
+        "odds": "-110",
+        "confidence": "High",
+        "sharp": "76%"
+    }, {
+        "game": "Dodgers vs Mets",
+        "pick": "Dodgers -1.5",
+        "odds": "+125",
+        "confidence": "Medium",
+        "sharp": "71%"
+    }]
+
+# --- ORIGINAL FUNCTION BELOW (TEMP DISABLED) ---
+# def get_picks_data_only():
     from mlb.odds import get_odds_data
     sharp_data = sharp_data_cache.copy()
     odds_data = get_odds_data()

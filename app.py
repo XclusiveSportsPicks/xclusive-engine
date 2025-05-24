@@ -1,5 +1,8 @@
 
 from flask import Flask, render_template, jsonify
+import subprocess
+subprocess.run(["playwright", "install", "chromium"], check=True)
+
 from dotenv import load_dotenv
 import os
 from datetime import datetime

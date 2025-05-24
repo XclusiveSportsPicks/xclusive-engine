@@ -1,8 +1,9 @@
 services:
   - type: web
     name: xclusive-sharp-engine
-    env: docker
-    dockerfilePath: ./Dockerfile
+    env: python
+    buildCommand: bash start.sh
+    startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11

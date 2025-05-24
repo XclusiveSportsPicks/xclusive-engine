@@ -22,7 +22,7 @@ async def scrape_sao_live():
     sharp_data = {}
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
         page = await browser.new_page()
         await page.goto("https://www.scoresandodds.com/mlb/consensus-picks", timeout=90000)
         await page.wait_for_timeout(8000)

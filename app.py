@@ -46,7 +46,9 @@ def get_picks():
 def get_picks_data_only():
     from mlb.odds import get_odds_data
     sharp_data = sharp_data_cache.copy()
+    print('📈 Sharp cache:', sharp_data)
     odds_data = get_odds_data()
+    print('📦 Raw odds data:', odds_data)
 
     picks = []
 
@@ -73,6 +75,7 @@ def get_picks_data_only():
                 "confidence": f"{confidence_score}/10"
             })
 
+    print('✅ Final picks:', picks)
     return picks
 
 def get_model_confidence(team_name):

@@ -47,9 +47,7 @@ async def scrape_sao_live():
 
                 bet_pcts = money_pcts = None
                 for div in all_divs:
-                    raw_text = raw_text
-                    print(f"🧩 DIV TEXT: {raw_text}")
-                    text = raw_text
+                    text = await div.inner_text()
                     if "Bets" in text and "%" in text:
                         print(f"📊 Bets block: {text}")
                         nums = list(map(int, re.findall(r"(\d+)%", text)))[:2]

@@ -46,7 +46,8 @@ def homepage():
         picks = get_picks_data_only()
         return render_template("index.html", picks=picks)
     except Exception as e:
-        return f"❌ Error rendering homepage: {e}", 500
+        import traceback
+        return f"<h1>❌ Render Error</h1><pre>{traceback.format_exc()}</pre><hr><pre>{picks}</pre>", 500
 
 @app.route("/api/picks")
 def get_picks():

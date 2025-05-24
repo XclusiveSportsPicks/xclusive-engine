@@ -1,36 +1,54 @@
 from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
+import os
 from datetime import datetime
 import asyncio
-import os
-
 from scraper.sharp_scraper_playwright import scrape_sao_live
 from utils.team_name_map import normalize_team_name
-from mlb.odds import get_odds_data
 
 load_dotenv()
 app = Flask(__name__)
 
+import threading
+
+sharp_data_cache = {}
+
+def preload_sharp_data():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    from scraper.sharp_scraper_playwright import scrape_sao_live
+    sharp_data = loop.run_until_complete(scrape_sao_live())
+    sharp_data_cache.update(sharp_data)
+
+@app.before_first_request
+def trigger_background_load():
+    thread = threading.Thread(target=preload_sharp_data)
+    thread.start()
+
+
 SHARP_DELTA_THRESHOLD = 30
 MODEL_CONFIDENCE_MIN = 7.5
 
+# Initialize any necessary components here
+# For example, if you had a function to initialize a database or load models, call it here
+
 @app.route("/")
 def homepage():
-    # Only static HTML – no async/scraping
-    return render_template("index.html")
+    return render_template("index.html", picks=get_picks_data_only())
 
 @app.route("/api/picks")
 def get_picks():
-    picks = get_picks_data_only()
     return jsonify({
         "generated_at": datetime.utcnow().isoformat(),
-        "count": len(picks),
-        "picks": picks
+        "count": len(get_picks_data_only()),
+        "picks": get_picks_data_only()
     })
 
 def get_picks_data_only():
-    sharp_data = asyncio.run(scrape_sao_live())
+    from mlb.odds import get_odds_data
+    sharp_data = sharp_data_cache.copy()
     odds_data = get_odds_data()
+
     picks = []
 
     for game in odds_data:
@@ -38,12 +56,7 @@ def get_picks_data_only():
         team2 = normalize_team_name(game["team2"])
         odds1 = game["odds1"]
 
-        sharp = (
-            sharp_data.get(team1)
-            or sharp_data.get(team1.split()[-1])
-            or sharp_data.get(team1.replace("New York", "NY"))
-        )
-
+        sharp = sharp_data.get(team1) or sharp_data.get(team1.split()[-1]) or sharp_data.get(team1.replace("New York", "NY"))
         if not sharp:
             print(f"[SKIP] No sharp % for: {team1} vs {team2}")
             print(f"🔑 sharp_data keys: {list(sharp_data.keys())}")
@@ -51,8 +64,8 @@ def get_picks_data_only():
 
         bet_pct = sharp["bet_pct"]
         money_pct = sharp["money_pct"]
-        sharp_diff = money_pct - bet_pct
         confidence_score = get_model_confidence(team1)
+        sharp_diff = money_pct - bet_pct
 
         print(f"[DEBUG] {team1} vs {team2} — Bet: {bet_pct}%, Money: {money_pct}%, SharpDiff: {sharp_diff}, Confidence: {confidence_score}")
 

@@ -7,3 +7,5 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
+    plan: starter               # Optional: define service tier (can be standard, starter, etc.)
+    autoDeploy: true           # Optional: auto-deploy new commits (Git-based deployments only)

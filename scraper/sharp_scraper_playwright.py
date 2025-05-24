@@ -27,6 +27,9 @@ async def scrape_sao_live():
         await page.goto("https://www.scoresandodds.com/mlb/consensus-picks", timeout=90000)
         await page.wait_for_timeout(8000)
 
+        html = await page.content()
+        print(f"📄 First 500 chars of page HTML:\n{html[:500]}")
+
         cards = await page.query_selector_all("div.event-header")
         print(f"📦 Found {len(cards)} matchups on SAO")
 
@@ -44,12 +47,16 @@ async def scrape_sao_live():
 
                 bet_pcts = money_pcts = None
                 for div in all_divs:
-                    text = await div.inner_text()
-                    if "% of Bets" in text:
+                    raw_text = raw_text
+                    print(f"🧩 DIV TEXT: {raw_text}")
+                    text = raw_text
+                    if "Bets" in text and "%" in text:
+                        print(f"📊 Bets block: {text}")
                         nums = list(map(int, re.findall(r"(\d+)%", text)))[:2]
                         if len(nums) == 2:
                             bet_pcts = nums
-                    if "% of Money" in text:
+                    if "Money" in text and "%" in text:
+                        print(f"💰 Money block: {text}")
                         nums = list(map(int, re.findall(r"(\d+)%", text)))[:2]
                         if len(nums) == 2:
                             money_pcts = nums

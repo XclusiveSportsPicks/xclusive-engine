@@ -1,9 +1,9 @@
-# Python
-**/venv/
+# Python venv
+venv/
 **/__pycache__/
 *.py[cod]
 
-# Node
+# Node modules
 frontend/node_modules/
 
 # Env files

@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -44,18 +45,21 @@ def ping():
 @app.route('/api/login', methods=['POST'])
 def login():
     creds = request.json or {}
-    if creds.get('username') == 'admin' and creds.get('password') == 'password':
-        return jsonify(access_token=create_access_token(identity='admin'))
+    if creds.get('username') == 'admin' and creds.get('password') == os.getenv('ADMIN_PASS', 'password'):
+        token = create_access_token(identity='admin')
+        return jsonify(access_token=token)
     return jsonify(msg='Bad credentials'), 401
 
 @app.route('/api/scrape-now', methods=['GET'])
 @jwt_required()
 def manual_scrape():
-    return jsonify(run_scraper()), 200
+    run_scraper()
+    return jsonify(status='scraped'), 200
 
 @app.route('/api/todays-picks', methods=['GET'])
 def todays_picks():
-    picks = Pick.query.all()
+    today = date.today()
+    picks = Pick.query.filter(db.func.date(Pick.created_at) >= today).all()
     return jsonify([p.to_dict() for p in picks])
 
 @app.route('/api/picks', methods=['POST'])
@@ -97,7 +101,7 @@ def export_pdf():
     c = canvas.Canvas(buf)
     y = 800
     for p in picks:
-        line = f"{p['matchup']} | {p['type']} | C:{p['confidence_score']} | W:{p['win_probability']} | {p.get('summary', '')}"
+        line = f"{p['matchup']} | {p['type']} | C:{p['confidence_score']} | W:{p['win_probability']} | {p.get('summary','')}"
         c.drawString(50, y, line)
         y -= 15
         if y < 50:

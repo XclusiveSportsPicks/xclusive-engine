@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Python venv
 venv/
 **/__pycache__/
@@ -13,6 +14,14 @@ venv/
 
 # Node
 >>>>>>> e0dc265 (Add .gitignore to exclude venv and node_modules)
+=======
+# Python venv
+venv/
+**/__pycache__/
+*.py[cod]
+
+# Node modules
+>>>>>>> e7ad9cf (Add .gitignore)
 frontend/node_modules/
 
 # Env files

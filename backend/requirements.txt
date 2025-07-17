@@ -3,11 +3,11 @@ Flask-CORS
 Flask-SQLAlchemy
 Flask-Migrate
 Flask-JWT-Extended
-pandas
-reportlab
 APScheduler
 requests
 beautifulsoup4
+pandas
+reportlab
 python-dotenv
 psycopg2-binary
 playwright

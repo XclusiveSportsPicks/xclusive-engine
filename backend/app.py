@@ -13,6 +13,7 @@ from models import db, Pick
 from scraper import run_scraper
 from filters import is_game_final, line_moved_in_your_direction
 
+# App & config
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///instance/picks.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -40,16 +41,53 @@ with app.app_context():
 def ping():
     return 'pong', 200
 
+@app.route('/api/login', methods=['POST'])
+def login():
+    creds = request.json or {}
+    if creds.get('username') == 'admin' and creds.get('password') == 'password':
+        return jsonify(access_token=create_access_token(identity='admin'))
+    return jsonify(msg='Bad credentials'), 401
+
+@app.route('/api/scrape-now', methods=['GET'])
+@jwt_required()
+def manual_scrape():
+    return jsonify(run_scraper()), 200
+
 @app.route('/api/todays-picks', methods=['GET'])
 def todays_picks():
     picks = Pick.query.all()
     return jsonify([p.to_dict() for p in picks])
 
-@app.route('/api/scrape-now', methods=['GET'])
+@app.route('/api/picks', methods=['POST'])
 @jwt_required()
-def manual_scrape():
-    run_scraper()
-    return jsonify(status='scraped'), 200
+def create_pick():
+    data = request.json or {}
+    pick = Pick(**data)
+    db.session.add(pick)
+    db.session.commit()
+    return jsonify(id=pick.id), 201
+
+@app.route('/api/picks/<int:pk>', methods=['PUT', 'DELETE'])
+@jwt_required()
+def modify_pick(pk):
+    pick = Pick.query.get_or_404(pk)
+    if request.method == 'PUT':
+        for k, v in (request.json or {}).items():
+            setattr(pick, k, v)
+        db.session.commit()
+        return jsonify(status='updated')
+    db.session.delete(pick)
+    db.session.commit()
+    return jsonify(status='deleted')
+
+@app.route('/api/export/csv', methods=['GET'])
+@jwt_required()
+def export_csv():
+    df = pd.DataFrame([p.to_dict() for p in Pick.query.all()])
+    buf = BytesIO()
+    df.to_csv(buf, index=False)
+    buf.seek(0)
+    return send_file(buf, mimetype='text/csv', as_attachment=True, download_name='picks.csv')
 
 @app.route('/api/export/pdf', methods=['GET'])
 @jwt_required()
@@ -59,12 +97,14 @@ def export_pdf():
     c = canvas.Canvas(buf)
     y = 800
     for p in picks:
-        line = f"{p['matchup']} | {p['type']} | C:{p['confidence_score']} | W:{p['win_probability']} | {p.get('summary','')}"
+        line = f"{p['matchup']} | {p['type']} | C:{p['confidence_score']} | W:{p['win_probability']} | {p.get('summary', '')}"
         c.drawString(50, y, line)
         y -= 15
         if y < 50:
-            c.showPage(); y = 800
-    c.save(); buf.seek(0)
+            c.showPage()
+            y = 800
+    c.save()
+    buf.seek(0)
     return send_file(buf, mimetype='application/pdf', as_attachment=True, download_name='picks.pdf')
 
 if __name__ == '__main__':

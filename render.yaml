@@ -2,14 +2,17 @@ services:
   - type: web
     name: xclusive-backend
     env: docker
-    branch: main
+    branch: master
     region: virginia
     rootDir: backend
     plan: free
     envVars:
       - key: ODDS_API_KEY
+        value: 0872bbfe3e80dddd635a1f6d21b09201
       - key: DATABASE_URL
+        value: postgresql://xsp_db_user:T67VYY5g9LMBG3DBxohWzAVOYvFrZFSu@dpg-d1rvsuur433s73b8cs1g-a.virginia-postgres.render.com/xsp_db
       - key: JWT_SECRET_KEY
+        value: supersecretjwtkey123
     buildCommand: |
       python -m pip install --upgrade pip && \
       python -m pip install -r requirements.txt && \
@@ -21,7 +24,7 @@ services:
   - type: web
     name: xclusive-frontend
     env: node
-    branch: main
+    branch: master
     region: virginia
     rootDir: frontend
     plan: free
@@ -29,4 +32,5 @@ services:
     startCommand: "npm run start"
     envVars:
       - key: NEXT_PUBLIC_API_URL
+        value: https://<your-backend-url>
     healthCheckPath: "/"

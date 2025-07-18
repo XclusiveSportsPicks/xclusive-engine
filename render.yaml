@@ -28,9 +28,9 @@ services:
     region: virginia
     rootDir: frontend
     plan: free
-    buildCommand: "npm install && npm run build"
-    startCommand: "npm run start"
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://xclusive-backend.onrender.com
-    healthCheckPath: "/"
+    healthCheckPath: /

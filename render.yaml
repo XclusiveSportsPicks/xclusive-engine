@@ -1,10 +1,11 @@
 services:
+  # Backend API service
   - type: web
     name: xclusive-backend
     env: docker
     branch: master
     region: virginia
-    rootDir: backend
+    rootDir: backend      # points to the Flask backend folder
     plan: free
     envVars:
       - key: ODDS_API_KEY
@@ -21,12 +22,15 @@ services:
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 3
     healthCheckPath: /ping
 
+  # Frontend Next.js service
   - type: web
     name: xclusive-frontend
     env: node
     branch: master
     region: virginia
-    rootDir: frontend
+    # Make sure this matches your actual frontend folder name
+    # Update this to match your actual frontend folder name
+    rootDir: ui            # since your frontend directory is named `ui`
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm run start
